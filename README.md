@@ -86,4 +86,4 @@ Python (standard library plus the Anthropic SDK and crawl4ai for rendering), Cla
 
 ## My role
 
-I designed and built the system end to end since August 2026, working with Claude Code for much of the implementation, and ran it in production for the company: daily audits of the output against sources, fixing each error at its cause, and adding a test so it could not recur.
+Since August 2026 I have designed and built the system end to end, working with Claude Code for much of the implementation, and I run it in production for the company: daily audits of the output against sources, fixing each error at its cause, and adding a test so it could not recur.
