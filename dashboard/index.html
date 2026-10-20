@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WYA Competitive Intelligence</title>
+<style>
+:root{
+  color-scheme:light;
+  --teal:#00C9A7; --teal-ink:#007f6b;
+  /* 2-series categorical, validated light (all six checks pass) */
+  --s-news:#2a78d6; --s-post:#00937b;
+  --bg:#F7F7F7; --panel:#fff; --surface-2:#eceef1;
+  --text:#111; --text-2:#4a5158; --muted:#6b7280; --line:#e2e5ea;
+  --high:#991b1b; --high-bg:#fde8e8;
+  --med:#d97706;  --med-bg:#fdf1dc;
+  --low:#4a5158;  --low-bg:#eceef1;
+  --none:#6b7280; --none-bg:#eceef1;
+  --ok:#047857;   --ok-bg:#d9f2e6;
+}
+@media (prefers-color-scheme:dark){
+  :root:where(:not([data-theme=light])){
+    color-scheme:dark;
+    --teal-ink:#3ddcbd;
+    /* same two hues stepped for the dark surface, validated */
+    --s-news:#3987e5; --s-post:#1baf7a;
+    --bg:#0d0f11; --panel:#16191c; --surface-2:#22262a;
+    --text:#e9ecef; --text-2:#b6bec7; --muted:#8e97a3; --line:#272b30;
+    --high:#ef5350; --high-bg:#3a1516;
+    --med:#e0a419;  --med-bg:#38290a;
+    --low:#b6bec7;  --low-bg:#22262a;
+    --none:#8e97a3; --none-bg:#22262a;
+    --ok:#2fbf8f;   --ok-bg:#0d3327;
+  }
+}
+:root[data-theme=dark]{
+  color-scheme:dark;
+  --teal-ink:#3ddcbd; --teal-bar:#00a88c;
+  --bg:#0d0f11; --panel:#16191c; --surface-2:#22262a;
+  --text:#e9ecef; --text-2:#b6bec7; --muted:#8e97a3; --line:#272b30;
+  --high:#ef5350; --high-bg:#3a1516;
+  --med:#e0a419;  --med-bg:#38290a;
+  --low:#b6bec7;  --low-bg:#22262a;
+  --none:#8e97a3; --none-bg:#22262a;
+  --ok:#2fbf8f;   --ok-bg:#0d3327;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:Calibri,"Segoe UI",system-ui,-apple-system,sans-serif;
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:var(--teal-ink);text-decoration:none;border-bottom:1px solid transparent}
+a:hover{border-bottom-color:currentColor}
+
+header{background:#000;color:#fff;padding:20px 26px 18px;
+  border-bottom:4px solid var(--teal)}
+.hrow{display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;
+  max-width:1560px;margin:0 auto}
+header h1{margin:0;font-size:21px;letter-spacing:.01em;font-weight:700}
+header h1 b{color:var(--teal);font-weight:700}
+header .meta{color:#9aa3ad;font-size:12.5px;margin-top:5px}
+header .cls{margin-left:auto;text-align:right;font-size:11px;color:#7d858f;
+  letter-spacing:.06em;text-transform:uppercase}
+.hbtns{display:flex;gap:7px;justify-content:flex-end;margin-top:7px}
+#theme,#refresh{background:transparent;border:1px solid #3a4048;color:#cfd5db;
+  border-radius:6px;padding:5px 11px;font:inherit;font-size:12px;cursor:pointer}
+#theme:hover,#refresh:hover:not(:disabled){border-color:var(--teal);color:var(--teal)}
+#refresh:disabled{opacity:.65;cursor:progress}
+#refresh.on{border-color:var(--teal);color:var(--teal)}
+
+/* refresh progress panel */
+#runlog{position:fixed;right:16px;bottom:16px;width:min(430px,calc(100vw - 32px));
+  background:#0b0d0f;color:#d7dde3;border:1px solid #2b3138;border-radius:10px;
+  z-index:90;box-shadow:0 10px 34px rgba(0,0,0,.45);overflow:hidden}
+#runlog[hidden]{display:none}
+#runlog .rh{display:flex;align-items:center;gap:9px;padding:11px 14px;
+  border-bottom:1px solid #2b3138;font-size:13px;font-weight:600}
+#runlog .rh .dotp{width:8px;height:8px;border-radius:50%;background:var(--teal);
+  animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+#runlog .rh .ok{background:#2fbf8f;animation:none}
+#runlog .rh .bad{background:#ef5350;animation:none}
+#runlog .rh button{margin-left:auto;background:none;border:0;color:#8e97a3;
+  font:inherit;font-size:17px;line-height:1;cursor:pointer;padding:0 2px}
+#runlog pre{margin:0;padding:11px 14px;max-height:210px;overflow-y:auto;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;
+  line-height:1.55;white-space:pre-wrap;color:#a9b2bb}
+#runlog .rf{padding:10px 14px;border-top:1px solid #2b3138;font-size:12.5px;
+  color:#8e97a3}
+#runlog .rf b{color:var(--teal)}
+
+nav{display:flex;gap:0;background:var(--panel);padding:0 22px;
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30;
+  overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{background:none;border:0;border-bottom:3px solid transparent;
+  padding:14px 17px;font:inherit;font-size:14.5px;font-weight:600;
+  color:var(--muted);cursor:pointer;white-space:nowrap}
+nav button[aria-selected=true]{color:var(--text);border-bottom-color:var(--teal)}
+nav button:hover{color:var(--text)}
+.cell .prov{opacity:.65;font-size:11px;letter-spacing:.02em}
+nav .count.new{background:var(--teal);color:#04120c;font-weight:800}
+nav .count{display:inline-block;background:var(--surface-2);color:var(--muted);
+  font-size:11px;font-weight:700;border-radius:9px;padding:1px 7px;margin-left:6px}
+
+main{padding:26px 22px 40px;max-width:1560px;margin:0 auto}
+section[hidden]{display:none}
+h2{font-size:19px;margin:0 0 5px;letter-spacing:-.01em}
+h3{font-size:15.5px;margin:0 0 8px}
+.lede{color:var(--text-2);font-size:14px;margin:0 0 20px;max-width:88ch}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:18px 20px;margin-bottom:16px}
+.card.tight{padding:0;overflow:hidden}
+
+/* weekly digest call to action */
+.digest-cta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  background:#000;color:#fff;border-radius:10px;padding:15px 20px;
+  margin-bottom:16px;border:0}
+.digest-cta:hover{border:0}
+.digest-cta .dl{font-weight:700;font-size:15.5px;color:var(--teal)}
+.digest-cta .dt{color:#9aa3ad;font-size:13.5px}
+.digest-cta .da{margin-left:auto;font-size:13px;font-weight:700;color:#fff;
+  border:1px solid #3a4048;border-radius:6px;padding:6px 13px}
+.digest-cta:hover .da{border-color:var(--teal);color:var(--teal)}
+
+/* hero */
+.hero{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--teal);
+  border-radius:10px;padding:22px 24px;margin-bottom:18px}
+.hero .kicker{font-size:11px;font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--teal-ink);margin-bottom:9px}
+.hero .stmt{font-size:21px;line-height:1.35;font-weight:600;letter-spacing:-.015em;
+  margin:0 0 12px;max-width:52ch}
+.hero p{margin:0;color:var(--text-2);font-size:14.5px;max-width:88ch}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
+  gap:12px;margin-bottom:18px}
+.stat{font:inherit;text-align:left;width:100%;cursor:pointer;
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:14px 16px}
+.stat .n{font-size:29px;font-weight:700;line-height:1.05;letter-spacing:-.02em}
+.stat .l{font-size:11.5px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.05em;margin-top:3px;font-weight:600}
+.stat .s{font-size:12px;color:var(--text-2);margin-top:5px}
+.stat.accent .n{color:var(--teal-ink)}
+
+/* threat badges — status colors, always paired with the word */
+.t{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:5px}
+.t::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.t-high{background:var(--high-bg);color:var(--high)}
+.t-medium{background:var(--med-bg);color:var(--med)}
+.t-low{background:var(--low-bg);color:var(--low)}
+.t-none{background:var(--none-bg);color:var(--none);text-decoration:line-through}
+.t-ok{background:var(--ok-bg);color:var(--ok)}
+
+.b{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;padding:2px 7px;border-radius:4px;vertical-align:middle}
+.b-certain{background:var(--ok-bg);color:var(--ok)}
+.b-likely{background:var(--low-bg);color:var(--low)}
+.b-unverified{background:var(--med-bg);color:var(--med)}
+.b-stale{background:var(--high-bg);color:var(--high)}
+.b-unknown{background:var(--surface-2);color:var(--muted)}
+
+/* tables */
+/* Per-competitor scoreboard. The front page used to open with five stat tiles and
+   a ten-item news ticker, so the first question a salesperson has - "did any of
+   the companies I sell against do anything, and what does it cost" - was answered
+   several scrolls down, if at all. One card per company answers it directly, and
+   a company that did nothing says so rather than being absent. */
+.sb{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));
+    gap:12px;margin:2px 0 8px}
+.sbc{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+     padding:15px 17px;display:flex;flex-direction:column;gap:9px}
+.sbc.moved{border-left:3px solid var(--teal)}
+.sbc.quiet{opacity:.72}
+.sbtop{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.sbtop b{font-size:15.5px;letter-spacing:-.01em}
+.sbstate{margin-left:auto;font-size:11px;font-weight:700;letter-spacing:.06em;
+         text-transform:uppercase;color:var(--muted)}
+.sbc.moved .sbstate{color:var(--teal-ink)}
+.sbprice{font-size:14px;line-height:1.45}
+.sbprice .num{font-weight:700}
+.sbprice .was{color:var(--muted);font-size:12.5px}
+.sbprice .unpriced{color:var(--muted)}
+.sbfind{font-size:14px;line-height:1.55;color:var(--text-2);margin:0}
+.sbfind + .sbfind{margin-top:-2px}
+.sbmeta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:auto;
+        padding-top:4px;font-size:12.5px}
+.sbmeta a{font-weight:600}
+.sbtag{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+       padding:2px 6px;border-radius:4px;background:var(--surface-2);color:var(--muted)}
+.sbtag.ai{background:var(--med-bg);color:var(--med)}
+/* Price history, rendered where the price is rather than on a separate tab: the
+   move is the finding, not the current figure on its own. */
+.phist{display:flex;gap:0;flex-wrap:wrap;align-items:center;font-size:12.5px;
+       color:var(--text-2);margin-top:2px}
+.phist .pp{white-space:nowrap}
+.phist .pp+.pp:before{content:"→";margin:0 7px;color:var(--muted)}
+.phist .pp.now{font-weight:700;color:var(--text)}
+
+.wrap{overflow-x:auto}
+/* Summary vs detail was a border colour and a heading — not enough to read as two
+   different layers at a glance. The summary is now a panel; the detail is fenced. */
+.sumpanel{background:var(--sum-bg);border:1px solid var(--sum-br);border-radius:12px;
+  padding:22px 24px;margin:16px 0 0}
+.sumpanel .sumhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding-bottom:12px;border-bottom:1px solid var(--sum-br)}
+.sumpanel h3{margin:0;font-size:19px}
+.sumbadge{font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:800;
+  background:var(--teal);color:#04120c;padding:4px 9px;border-radius:999px}
+.sumrow{margin-top:14px}
+.sumrow .k{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);font-weight:800}
+.sumrow .v{margin-top:3px;font-size:15.5px;line-height:1.55}
+.cmpwrap{margin-top:16px}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+@media (max-width:640px){.cmp{grid-template-columns:1fr}}
+.cmpside{border:1px solid var(--line);border-radius:10px;padding:12px 14px;
+  background:var(--panel)}
+.cmpside.win{border-color:var(--ok);background:var(--ok-bg)}
+.cmpside .who{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+  font-weight:800;color:var(--muted);display:flex;align-items:center;gap:6px}
+.cmpside.win .who{color:var(--ok)}
+.cmpside .txt{margin-top:5px;font-size:14.5px;line-height:1.5}
+.cmpdim{font-size:14px;font-weight:800;display:flex;align-items:baseline;
+  gap:8px;flex-wrap:wrap;margin-top:16px}
+.cmpverdict{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;
+  font-weight:800;padding:3px 8px;border-radius:999px;
+  background:var(--surface-2);color:var(--text-2)}
+.cmpverdict.us{background:var(--ok-bg);color:var(--ok)}
+.cmpverdict.them{background:var(--med-bg);color:var(--med)}
+.detailfence{display:flex;align-items:center;gap:14px;margin:34px 0 4px}
+.detailfence span{font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);font-weight:800;white-space:nowrap}
+.detailfence:before,.detailfence:after{content:"";height:1px;background:var(--line);flex:1}
+/* .card.tight sets overflow:hidden and outranks .wrap on specificity, which clipped
+   the capability matrix on narrow screens with no way to scroll to it. */
+.card.tight.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);
+  vertical-align:top}
+thead th{background:var(--surface-2);font-size:11px;text-transform:uppercase;
+  letter-spacing:.05em;color:var(--muted);font-weight:700;white-space:nowrap}
+tbody tr:hover{background:var(--bg)}
+#matrix{min-width:880px}
+tr.wya-row{background:color-mix(in srgb,var(--teal) 12%,transparent)}
+tr.wya-row td{font-weight:700;border-bottom:2px solid var(--teal)}
+tr.dim td:first-child b{color:var(--muted)}
+.cell{display:flex;flex-direction:column;gap:4px}
+.v{font-weight:700;font-size:13.5px}
+.v-yes{color:var(--ok)} .v-no{color:var(--muted);font-weight:600}
+.v-partial,.v-camera-only{color:var(--med)}
+.v-conflicting{color:var(--high)}
+.v-unknown{color:var(--muted);font-style:italic;font-weight:400}
+.note{font-size:11.5px;color:var(--muted);line-height:1.4}
+.pill{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  padding:2px 6px;border-radius:4px;margin-left:6px;white-space:nowrap}
+.p-active{background:var(--ok-bg);color:var(--ok)}
+.p-exited,.p-absorbed,.p-acquired{background:var(--high-bg);color:var(--high)}
+.p-current{background:var(--ok-bg);color:var(--ok)}
+.p-de-emphasised{background:var(--med-bg);color:var(--med)}
+.p-discontinued{background:var(--high-bg);color:var(--high)}
+.nowrap{white-space:nowrap}
+
+/* activity chart — stacked, 2 series */
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin:0 0 16px;font-size:12.5px;
+  color:var(--text-2)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend i{width:11px;height:11px;border-radius:3px;flex:none}
+.chart{display:grid;grid-template-columns:170px 1fr 40px;gap:5px 12px;
+  align-items:center;font-size:13px}
+.chart .cname{text-align:right;color:var(--text-2);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.chart .track{background:var(--surface-2);border-radius:4px;height:20px;
+  display:flex;overflow:hidden}
+.chart .seg{height:100%;min-width:3px;cursor:default}
+/* 2px surface gap between adjacent fills, per mark spec */
+.chart .seg + .seg{box-shadow:-2px 0 0 0 var(--panel)}
+.chart .seg:first-child{border-radius:4px 0 0 4px}
+.chart .seg:last-child{border-radius:0 4px 4px 0}
+.chart .seg:only-child{border-radius:4px}
+.chart .s-news{background:var(--s-news)}
+.chart .s-post{background:var(--s-post)}
+.chart .seg:hover{filter:brightness(1.14)}
+.chart .val{font-variant-numeric:tabular-nums;font-weight:700;color:var(--text-2)}
+.tip{position:fixed;z-index:80;background:#000;color:#fff;font-size:12px;
+  padding:7px 10px;border-radius:6px;pointer-events:none;opacity:0;
+  transition:opacity .1s;max-width:280px;line-height:1.4}
+.tip.on{opacity:1}
+
+/* movements */
+.mv{padding:13px 0;border-bottom:1px solid var(--line)}
+.mv:last-child{border-bottom:0;padding-bottom:0}
+.mv:first-of-type{padding-top:0}
+.mvh{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:5px}
+.mvh b{font-size:13.5px}
+.tag{font-size:9.5px;font-weight:700;letter-spacing:.07em;padding:2px 6px;
+  border-radius:4px;background:var(--surface-2);color:var(--muted)}
+.mv a{font-size:14.5px;font-weight:600;line-height:1.4}
+.why{margin-top:7px;padding:8px 12px;background:var(--bg);border-radius:6px;
+  font-size:13px;color:var(--text-2);border-left:2px solid var(--teal)}
+.why b{color:var(--teal-ink)}
+details summary::-webkit-details-marker{color:var(--muted)}
+
+/* findings */
+.finding{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--muted);
+  border-radius:0 10px 10px 0;padding:16px 19px;margin-bottom:13px}
+.finding.priority,.finding.conflict,.finding.stale{border-left-color:var(--high)}
+.finding.strategic{border-left-color:var(--teal)}
+.finding.gap,.finding.blocker{border-left-color:var(--med)}
+.finding.info{border-left-color:var(--muted)}
+.finding .top{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:7px}
+.finding h3{margin:0;flex:1;min-width:260px}
+.finding p{margin:7px 0;color:var(--text-2);font-size:14px}
+.finding .act{background:var(--bg);border-radius:7px;padding:11px 14px;
+  font-size:13.5px;margin-top:11px;color:var(--text)}
+.owner{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;
+  letter-spacing:.05em;white-space:nowrap}
+
+/* briefs */
+.grid{display:grid;grid-template-columns:270px minmax(0,1fr);gap:18px;align-items:start}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.picker{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:8px;position:sticky;top:70px;max-height:calc(100vh - 96px);overflow-y:auto}
+@media(max-width:900px){.picker{position:static;max-height:none}}
+.picker .tg{font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--muted);padding:11px 10px 5px}
+.picker button{display:flex;justify-content:space-between;align-items:center;gap:8px;
+  width:100%;text-align:left;background:none;border:0;padding:8px 10px;
+  border-radius:7px;font:inherit;font-size:13.5px;cursor:pointer;color:var(--text)}
+.picker button:hover{background:var(--bg)}
+.picker button[aria-current=true]{background:var(--teal);color:#00302a;font-weight:700}
+.picker button[aria-current=true] .dot{background:#00302a}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.d-high{background:var(--high)} .d-medium{background:var(--med)}
+.d-low{background:var(--low)}   .d-none{background:var(--none)}
+dl.snap{display:grid;grid-template-columns:minmax(150px,200px) 1fr;gap:10px 16px;
+  margin:0;font-size:13.5px}
+@media(max-width:640px){dl.snap{grid-template-columns:1fr;gap:3px 0}
+  dl.snap dd{margin-bottom:9px}}
+dl.snap dt{color:var(--muted);font-weight:700;font-size:12.5px}
+dl.snap dd{margin:0;color:var(--text-2)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.cols{grid-template-columns:1fr}}
+ul.pts{margin:0;padding-left:19px;font-size:13.5px;color:var(--text-2)}
+ul.pts li{margin-bottom:10px}
+.edge-WYA{color:var(--ok);font-weight:700}
+.edge-them{color:var(--high);font-weight:700}
+.edge-draw{color:var(--med);font-weight:700}
+.prod{border:1px solid var(--line);border-radius:8px;padding:13px 15px;
+  margin-bottom:10px;background:var(--bg)}
+
+/* activity feed */
+.filters{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+select,input[type=search]{font:inherit;font-size:13.5px;padding:8px 11px;
+  border:1px solid var(--line);border-radius:7px;background:var(--panel);
+  color:var(--text)}
+input[type=search]{min-width:210px;flex:1;max-width:340px}
+.fcount{font-size:12.5px;color:var(--muted);margin-left:auto;font-weight:600}
+.item{display:grid;grid-template-columns:92px 104px 158px 1fr;gap:14px;
+  padding:12px 16px;border-bottom:1px solid var(--line);font-size:13.5px;
+  align-items:baseline}
+.item:last-child{border-bottom:0}
+.item:hover{background:var(--bg)}
+@media(max-width:860px){.item{grid-template-columns:1fr;gap:4px}}
+.item .k{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  padding:3px 7px;border-radius:4px;justify-self:start}
+.k-news{background:var(--low-bg);color:var(--low)}
+.k-post{background:color-mix(in srgb,var(--teal) 20%,transparent);color:var(--teal-ink)}
+.k-new_page{background:var(--med-bg);color:var(--med)}
+.k-page_change{background:var(--high-bg);color:var(--high)}
+.item .when{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12.5px}
+.item .who{font-weight:700;color:var(--text-2);font-size:12.5px}
+.empty{padding:34px;text-align:center;color:var(--muted)}
+code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.5px}
+footer{color:var(--muted);font-size:12px;padding:8px 22px 34px;max-width:1560px;
+  margin:0 auto;line-height:1.7}
+:root{--sum-bg:#f3fbf7;--sum-br:#bfe6d4}
+/* Three states, matching the pattern used above: explicit dark, explicit light, and
+   system preference with no choice made. Defining these only for the toggle left a
+   system-dark viewer with a light panel on a dark page. */
+@media (prefers-color-scheme:dark){
+  :root:where(:not([data-theme=light])){--sum-bg:#111c17;--sum-br:#244434}
+}
+:root[data-theme="dark"]{--sum-bg:#111c17;--sum-br:#244434}
+.err{background:var(--high-bg);color:var(--high);padding:20px;border-radius:10px;
+  line-height:1.7}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <div>
+      <h1>WYA <b>Competitive Intelligence</b></h1>
+      <div class="meta" id="meta">loading…</div>
+    </div>
+    <div class="cls">
+      <div id="cls"></div>
+      <div class="hbtns">
+        <button id="refresh" type="button" hidden>Refresh data</button>
+        <button id="theme" type="button">Theme</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<nav id="nav" role="tablist"></nav>
+
+<main>
+  <section id="tab-overview" role="tabpanel">
+    <a class="digest-cta" href="#todays-heading" id="digest-cta">
+      <span class="dl" id="digest-label">Most important this week</span>
+      <span class="dt" id="digest-sub">the weekly read, ready to send</span>
+      <span class="da">Read it &darr;</span>
+    </a>
+    <h2 style="margin:4px 0 2px">Latest updates</h2>
+    <p class="lede">What moved, with what it means for us &mdash; competitors, clients and the wider market, newest first. Everything collected, analysed or not, is on the tabs above.</p>
+    <div class="card tight" id="latest"></div>
+
+    <h2 style="margin:38px 0 2px">Where the competition is this week</h2>
+    <p class="lede">One card per company we actually compete with, the ones that
+      moved first. A company that did nothing says so — that is a finding too, and
+      it is the difference between a quiet market and a monitor that has stopped
+      looking. Prices are what they publish; ours is on the Pricing tab.</p>
+    <div class="sb" id="scoreboard"></div>
+
+    <div class="detailfence"><span>Everything else</span></div>
+    <div class="stats" id="stats"></div>
+
+    <h2 id="todays-heading" style="margin:32px 0 2px">This week's analysis</h2>
+    <p class="lede">Written for our own clients and the wider market — what happened,
+      how, and what it changes for us. Competitor analysis is on the
+      <b>Competitor activity</b> tab, next to the movements it explains.</p>
+    <div id="todays"></div>
+
+  </section>
+
+  <section id="tab-matrix" role="tabpanel" hidden>
+    <h2>Competitor matrix</h2>
+    <p class="lede">Every cell carries its source and a confidence level. Cells with
+      no supporting source render as <span class="v-unknown">unknown</span> rather
+      than an assumed yes or no. The WYA row is drawn solely from our own
+      material.</p>
+    <div class="card" style="margin:-2px 0 14px;padding:14px 18px">
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;font-size:13.5px">
+        <b style="font-size:12px;letter-spacing:.07em;text-transform:uppercase;
+          color:var(--muted)">How to read this</b>
+        <span><span class="v v-yes">Has it</span> the company publishes this capability</span>
+        <span><span class="v v-partial">Partly</span> real but narrower than ours, with the
+          limit stated in the cell</span>
+        <span><span class="v v-no">Does not</span> published material shows they do not</span>
+        <span><span class="v v-unknown">Not published</span> we checked their site and they
+          say nothing either way — never a guess</span>
+      </div>
+      <p class="note" style="margin:10px 0 0">Hover or read the line under any cell for the
+        source it came from. The WYA row is drawn only from our own product material.</p>
+    </div>
+    <p class="note" id="matrix-toggle" style="margin:-6px 0 12px"></p>
+    <div class="card tight wrap"><table id="matrix"></table></div>
+    <div class="card">
+      <h3>Threat assessment</h3>
+      <p class="note" style="margin:-4px 0 14px">Threat reflects who is chasing the
+        same budget and the same buyers, not company size or feature overlap. Each
+        level is labelled, never indicated by colour alone.</p>
+      <div class="wrap"><table id="threat-table"></table></div>
+    </div>
+    <div class="card" id="claim-check"></div>
+
+    <h2 style="margin:32px 0 2px">Standing market research</h2>
+    <p class="lede">What the monitoring has established, strongest first. Each conclusion
+      names its public source and how far the evidence goes. The week's raw articles sit
+      on the Competitor activity tab.</p>
+    <div id="say"></div>
+
+    <h2 style="margin:30px 0 2px">Questions, and what the public record answers</h2>
+    <p class="lede">Each question states what public sources already settle — competitors'
+      own published figures, peer-reviewed measurements — and what is left that genuinely
+      only WYA can supply, such as its own product list.</p>
+    <div id="actions"></div>
+
+    <details style="margin-top:26px">
+      <summary style="cursor:pointer;font-weight:700;font-size:15.5px">Every finding on
+        record <span class="note" style="font-weight:400">— the full list behind the
+        summary above</span></summary>
+      <div id="allfindings" style="margin-top:14px"></div>
+    </details>
+
+    <details class="card" style="margin-top:26px">
+      <summary style="cursor:pointer;font-weight:700;font-size:15.5px">
+        Standing market read <span class="note" style="font-weight:400">— the
+        longer-term picture, unchanged week to week</span></summary>
+      <div class="hero" style="margin:16px 0 0;border-left-width:3px">
+        <p class="stmt" id="hero-stmt" style="font-size:18px"></p>
+        <p id="hero-sum"></p>
+      </div>
+      <div id="positioning" style="margin-top:18px"></div>
+    </details>
+  </section>
+
+  <section id="tab-pricing" role="tabpanel" hidden>
+    <h2>Pricing</h2>
+    <p class="lede">What each competitor publishes about its own rate, checked directly
+      on their site rather than assumed. "Not published" means we checked and there is
+      genuinely no public figure, never a guess; that is a different thing from
+      "not yet checked."</p>
+    <div class="card tight wrap"><table id="pricing-table"></table></div>
+    <p class="note" id="pricing-note" style="margin:10px 0 0"></p>
+
+    <h2 style="margin-top:30px">What each figure means for us</h2>
+    <p class="lede">Same data, read company by company rather than as a row in a
+      table.</p>
+    <div id="pricing-discussion"></div>
+
+    <ul class="pts" id="pricing-sources" style="margin-top:22px"></ul>
+  </section>
+
+  <section id="tab-briefs" role="tabpanel" hidden>
+    <h2>Competitor brief</h2>
+    <p class="lede">Depth varies by assessment status and is stated for each company.
+      Empty sections indicate work not yet done, not an absence of findings.</p>
+    <div class="grid">
+      <div class="picker" id="picker" role="tablist" aria-label="Competitors"></div>
+      <div id="detail"></div>
+    </div>
+  </section>
+
+  <section id="tab-activity" role="tabpanel" hidden>
+    <h2>This week's competitor analysis</h2>
+    <p class="lede">Written judgement on this run's competitor movements — what changed,
+      how, and what it changes for us.</p>
+    <div id="competitor-analysis"></div>
+
+    <h2 style="margin-top:34px">What competitors did this week</h2>
+    <p class="lede">Movements detected since last week, grouped by what kind of move it
+      is. Who the competitors are and how they compare is reference material and sits on
+      the Matrix and Briefs tabs.</p>
+    <div id="changed"></div>
+
+    <h2 style="margin-top:34px">Everything collected</h2>
+    <p class="lede">The full archive, including the low-threat and consumer companies
+      kept out of the views above — Life360 and Google Maps alone account for 356 items
+      of stock filings and phone reviews. Nothing is deleted; it simply does not get to
+      crowd out the companies chasing the same budget. Collected from public sources
+      only, and no social platform is accessed in breach of its terms.</p>
+    <div class="filters">
+      <select id="f-range"></select>
+      <select id="f-comp"></select>
+      <select id="f-kind"></select>
+      <input type="search" id="f-q" placeholder="Search headlines…" aria-label="Search headlines">
+      <span class="fcount" id="fcount"></span>
+    </div>
+    <div class="card tight" id="feed"></div>
+    <div class="card" style="margin-top:16px">
+      <h3>Visible market activity — assessed companies</h3>
+      <p class="note" style="margin:-4px 0 12px">Items detected in the monitoring
+        window, split by type because the two are not comparable: earned coverage
+        is press a company attracted, self-published is output it controls. A company
+        that runs a blog will always out-publish one that does not, so read the
+        segments separately rather than the totals. This measures visibility, not
+        commercial performance.</p>
+      <div class="legend" id="legend"></div>
+      <div class="chart" id="chart"></div>
+      <p class="note" id="chart-note" style="margin:14px 0 0"></p>
+    </div>
+  </section>
+
+  <section id="tab-clients" role="tabpanel" hidden>
+    <h2>What our clients and prospects did</h2>
+    <p class="lede">New public activity from the accounts WYA works with or is chasing,
+      newest first. Standing background on every account is under
+      <b>Account profiles</b>, further down this page.</p>
+    <div id="callprep"></div>
+
+    <div id="clients" style="margin-top:34px"></div>
+
+    <h2 style="margin-top:38px">Account profiles</h2>
+    <p class="lede">The same accounts, one card each: standing background plus
+      everything collected about them in the monitoring window. Engagement labels come
+      from our own records and should be confirmed before being relied on —
+      no deal stage or commercial terms are recorded here.</p>
+    <div id="accounts"></div>
+  </section>
+
+  <section id="tab-space" role="tabpanel" hidden>
+    <h2>What moved in the space this week</h2>
+    <p class="lede">Regulation, market movement and sector conditions that change what
+      buyers are asked for, tracked by topic rather than by company.</p>
+    <div id="spacechg"></div>
+
+    <h2 style="margin-top:34px">Every topic we watch</h2>
+    <p class="lede">Each topic states why it matters to WYA before it lists anything,
+      and carries everything collected against it in the monitoring window.</p>
+    <div id="space"></div>
+  </section>
+
+</main>
+
+<footer id="footer"></footer>
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
+
+<div id="runlog" hidden role="status" aria-live="polite">
+  <div class="rh"><span class="dotp" id="rdot"></span>
+    <span id="rtitle">Refreshing…</span>
+    <button type="button" id="rclose" aria-label="Close">&times;</button></div>
+  <pre id="rlog"></pre>
+  <div class="rf" id="rfoot"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g,c=>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* A citation nobody can open is an assertion. Any URL or bare domain inside a source
+   string becomes a link, so every claim is one click from its proof. Escaping runs
+   first, so this can never inject markup that came from the data. */
+const URL_RE=/\b((?:https?:\/\/|www\.)[^\s<>"')\]]+|(?:[a-z0-9-]+\.)+(?:com|co\.uk|io|ai|tech|net|org|eu)(?:\/[^\s<>"')\]]*)?)/gi;
+/* A Google News link is ~400 characters of base64 and it was being printed in
+   full under the headline it belonged to, so the citation was twenty times longer
+   than the judgement above it. The link still goes to the same place; only the
+   text a person reads is shortened to the host plus an ellipsis. */
+const SHORT_URL_AT=68;
+const shortUrl = u => {
+  if(u.length<=SHORT_URL_AT) return u;
+  try{ const h=new URL(/^https?:/i.test(u)?u:'https://'+u).host.replace(/^www\./,'');
+       return h+'/\u2026'; }
+  catch(e){ return u.slice(0,SHORT_URL_AT)+'\u2026'; }
+};
+const linkify = s => esc(s).replace(URL_RE, m => {
+  const t=m.replace(/[.,;:]+$/,'');
+  const href=/^https?:/i.test(t)?t:'https://'+t;
+  return `<a href="${href}" target="_blank" rel="noopener">${esc(shortUrl(t))}</a>${m.slice(t.length)}`;
+});
+
+let DATA=null, FEED=[], CLIENTS=null, ANALYSIS=null;
+const TABS=[['overview','Market read'],['clients','Clients'],
+            ['space',"The space"],['matrix','Competitor matrix'],
+            ['pricing','Pricing'],
+            ['briefs','Competitor brief'],
+            ['activity','Competitor activity']];
+const TIERS=[['core','Core — same budget, same buyers'],
+             ['adjacent','Adjacent technology'],
+             ['consumer','Consumer location & safety apps'],
+             ['platform','Event-ops, ticketing & platform risk'],
+             ['watchlist','Watchlist — not yet assessed']];
+const THREATS=['high','medium','low','none'];
+
+/* theme */
+(function(){
+  const saved=localStorage.getItem('wya-theme');
+  if(saved) document.documentElement.dataset.theme=saved;
+  $('#theme').onclick=()=>{
+    const cur=document.documentElement.dataset.theme;
+    const next=cur==='dark'?'light':cur==='light'?'':'dark';
+    if(next) document.documentElement.dataset.theme=next;
+    else delete document.documentElement.dataset.theme;
+    localStorage.setItem('wya-theme',next);
+    $('#theme').textContent = next?next[0].toUpperCase()+next.slice(1):'Theme';
+  };
+  $('#theme').textContent = saved?saved[0].toUpperCase()+saved.slice(1):'Theme';
+})();
+
+/* refresh — only works when served by serve.py, which exposes /api/*.
+   Under plain http.server the probe 404s and the button stays hidden. */
+async function setupRefresh(){
+  const btn=$('#refresh'), box=$('#runlog'), log=$('#rlog'),
+        dot=$('#rdot'), title=$('#rtitle'), foot=$('#rfoot');
+  let st;
+  try{
+    const r=await fetch('api/status',{cache:'no-store'});
+    if(!r.ok) return;                       // static host: no button
+    st=await r.json();
+  }catch{ return; }                          // file:// or no server
+  btn.hidden=false;
+  $('#rclose').onclick=()=>box.hidden=true;
+
+  const paint=s=>{
+    log.textContent=(s.log||[]).join('\n');
+    log.scrollTop=log.scrollHeight;
+    dot.className='dotp'+(s.running?'':s.ok?' ok':' bad');
+    title.textContent=s.running
+      ? `Refreshing${s.step?' — '+s.step:''}…`
+      : s.ok?'Refresh complete':'Refresh finished with errors';
+    foot.innerHTML=s.running
+      ? 'Collecting from ~40 sources. This takes <b>5–8 minutes</b>. You can keep using the dashboard.'
+      : s.ok?'Reloading with the new data…':'Check the log above. Existing data is unchanged.';
+  };
+  const poll=async()=>{
+    let s;
+    try{ s=await (await fetch('api/status',{cache:'no-store'})).json(); }
+    catch{ return setTimeout(poll,3000); }
+    paint(s);
+    if(s.running) return setTimeout(poll,2000);
+    btn.disabled=false; btn.classList.remove('on'); btn.textContent='Refresh data';
+    if(s.ok) setTimeout(()=>location.reload(),1400);
+  };
+  btn.onclick=async()=>{
+    btn.disabled=true; btn.classList.add('on'); btn.textContent='Refreshing…';
+    box.hidden=false; log.textContent='requesting…';
+    const r=await fetch('api/refresh',{method:'POST'});
+    if(r.status===409) log.textContent='A refresh is already running.';
+    poll();
+  };
+  if(st.running){ btn.disabled=true; btn.classList.add('on');
+    btn.textContent='Refreshing…'; box.hidden=false; poll(); }
+}
+
+const badge = c => c ? `<span class="b b-${esc(c)}">${esc(c)}</span>` : '';
+const src   = i => `${badge(i.confidence)}${i.source?` <span class="note">${esc(i.source)}</span>`:''}`;
+const fmtDate = iso => {
+  if(!iso) return '';
+  const d=new Date(iso);
+  return isNaN(d)?'':d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+};
+const when = f => f.published || f.seen_at;
+
+/* ---------- nav ---------- */
+/* "What is new since I last looked", per section. Stored per tab, so opening Clients
+   clears only the Clients badge — one global timestamp would mark everything read the
+   moment someone opened any tab. Undated items cannot be judged new and never count. */
+const SEEN_KEY='wya-seen-v1';
+function seenMap(){
+  try{ return JSON.parse(localStorage.getItem(SEEN_KEY)||'{}'); }catch{ return {}; }
+}
+function markSeen(tab){
+  const m=seenMap(); m[tab]=new Date().toISOString();
+  try{ localStorage.setItem(SEEN_KEY, JSON.stringify(m)); }catch{}
+}
+const TAB_FEED={activity:'competitor', clients:'client', space:'sector'};
+function newCount(tab){
+  const type=TAB_FEED[tab]; if(!type) return 0;
+  const m=seenMap();
+  if(!m[tab]){ markSeen(tab); return 0; }   // first visit: baseline, not 1,000 "new"
+  const since=m[tab];
+  return FEED.filter(f=>{
+    if(f.entity_type!==type || !competes(f)) return false;
+    const w=when(f); if(!w) return false;
+    return w>since;
+  }).length;
+}
+function buildNav(){
+  $('#nav').innerHTML = TABS.map(([id,l],i)=>{
+    const nu=newCount(id);
+    return `<button role="tab" data-tab="${id}" aria-selected="${i===0}">${l}${
+      nu?`<span class="count new" title="${nu} new since you last opened this tab">${
+        nu} new</span>`:''}</button>`;
+  }).join('');
+  $('#nav').onclick = e=>{
+    const b=e.target.closest('button[data-tab]'); if(!b) return;
+    goTab(b.dataset.tab);
+  };
+}
+function goTab(tab, sel){
+  for(const x of $('#nav').children) x.setAttribute('aria-selected', x.dataset.tab===tab);
+  for(const [id] of TABS) $('#tab-'+id).hidden = id!==tab;
+  window.scrollTo({top:0,behavior:'instant'});
+  if(TAB_FEED[tab]){ markSeen(tab); buildNav(); }
+  if(sel){
+    const t=$(sel); if(!t) return;
+    t.scrollIntoView({block:'start',behavior:'smooth'});
+    // brief outline so it is obvious which table the number came from
+    t.style.outline='2px solid var(--teal)'; t.style.outlineOffset='6px';
+    setTimeout(()=>{t.style.outline='';t.style.outlineOffset='';},1600);
+  }
+}
+
+/* ---------- what changed: classify a movement and say why it matters ----------
+   Ordered most-decisive first; the first match wins. Each carries the reason it
+   matters to WYA, because a headline on its own is a directory entry, not
+   intelligence. */
+const SIGNALS=[
+  /* An app release is the most concrete product signal there is - the product
+     actually shipped, on a date, with a version number. It goes first so a
+     release is never swallowed by a looser text match below. */
+  {label:'Product & positioning', kinds:['app_release'],
+   so:'They shipped a new version of a product people install. A release is a product move that already happened, not one that was announced.'},
+  {label:'Crowd safety incidents',
+   re:/\b(crowd crush|crush|crowd surge|stampede|injured|casualt|fatalit|evacuat|show.?stop|emergency|barrier fail)\b/i,
+   so:'An incident at a comparable event changes what operators are being asked internally about density visibility. Live density and egress data is the evidence a buyer is then asked to produce.'},
+  {label:'Pricing & commercial', kinds:['page_change'], pages:['pricing'],
+   so:'They edited a pricing page. Their published rate is what a buyer compares against, and it has just moved.'},
+  {label:'Pricing & commercial',
+   re:/\b(pricing|price|rate card|per delegate|per head|tier|free trial|discount|subscription)\b/i,
+   so:'Commercial movement at a tracked competitor. Published pricing is the anchor a buyer brings into any comparison.'},
+  {label:'Ownership & funding',
+   re:/\b(acquir|acquisition|merger|takeover|divest|sold|sells|buyout|funding|raises?|series [a-e]|stake|invest)\b/i,
+   so:'Ownership or funding change. Expect a strategy shift, and continuity becomes a fair procurement question.'},
+  {label:'Leadership changes',
+   re:/\b(chief execu|\bceo\b|\bcoo\b|\bcto\b|chair|managing director|\bmd\b|appoint|steps down|resign|hires?|joins|departs?|promoted|new boss|to head)\b/i,
+   so:'The person who owns this relationship may have changed. Confirm the contact before re-approaching — a proposal addressed to someone who has left goes nowhere.'},
+  {label:'Governance & strategy',
+   re:/\b(quit|quitting|leaves|withdraw|exits?|restructur|redundanc|cull|shake.?up|overhaul|steps back|breaks? away|pulls? out)\b/i,
+   so:'A structural or governance move at this organisation. Usually means budgets and decision rights are being redrawn, which changes who signs and when.'},
+  {label:'Financial results',
+   re:/\b(results|earnings|guidance|revenue|profit|loss|half year|\bh1\b|\bh2\b|\bfy\b|trading update|turnover)\b/i,
+   so:'Financial performance sets the budget climate for this account. Growth argues for revenue uplift; cost pressure argues for the staffing and stewarding savings case instead.'},
+  {label:'Market health',
+   re:/\b(cancel|cancell|insolven|administration|collapse|closure|closed down|low ticket sales|ticket sales|postpone|axed)\b/i,
+   so:'Cancellations and weak ticket sales set the spending climate for the whole segment. A contracting market shifts the argument from revenue uplift to cost reduction.'},
+  {label:'Regulation & compliance',
+   re:/\b(law|regulation|legislation|compliance|deadline|duty|mandat|licensing|martyn|guidance on)\b/i,
+   so:'Regulatory movement turns crowd monitoring and mass communication from a discretionary purchase into a documented requirement. A legitimate reason to reopen a stalled conversation.'},
+  {label:'Wins & customers',
+   /* Verbs only. "secure", "sign" and "deploy" are also adjective, noun and how-to
+      verb: 40 of 172 items tagged as wins were guides like "Secure Guest WiFi Setup",
+      "7 Signs your wayfinding..." and "How to Deploy Them". "signs" stays when it is
+      the verb ("signs MoU with Informa Markets", "Dalata Signs Olympia Hotel"). */
+   re:/\b(wins?|secures|(?<!\d )signs (?!your\b|of\b|that\b|you\b|to\b)|renews?|partnership|contract|deal|selected|deploys|rolls? out|goes live|expands? (to|into)|opens? (office|in))\b/i,
+   so:'A named client, contract or new market. Check it against our own pipeline — this may be a venue, brand or region we are also pitching.'},
+  {label:'Wins & customers', kinds:['page_change','new_page'],
+   pages:['case-stud','case stud','customer','client-stor','client stor','success-stor','success stor'],
+   so:'A new or changed customer-facing page. Any named account on it shows who they are already selling to.'},
+  {label:'Wins & customers', kinds:['page_change','new_page'], pages:['partner'],
+   so:'A new or changed partners page. A channel partner named there can reach a budget WYA sells into directly.'},
+  {label:'Hiring & careers', kinds:['page_change','new_page'],
+   pages:['career','careers','/jobs','job-','hiring','vacanc'],
+   so:'A careers or hiring page moved. Volume and seniority of open roles is a leading indicator of where a competitor is about to invest, ahead of any product announcement.'},
+  {label:'Product & positioning', kinds:['page_change','new_page'],
+   so:'They changed what their own site says about the product or the sectors they serve. This is how a repositioning shows up before anyone announces it.'},
+  {label:'Product & positioning',
+   re:/\b(launch|unveil|introduc|announce|new (product|platform|sensor|tool|feature)|release|debuts?|rebrand|next.?generation)\b/i,
+   so:'Product move. May change what they pitch against us, and what a buyer starts expecting as standard.'},
+  {label:'Recognition & profile',
+   re:/\b(award|finalist|winner|named in|ranked|top \d+|accredit|certifi|shortlist|index)\b/i,
+   so:'Third-party recognition is procurement ammunition. It answers the risk question before a buyer asks it, which is the gap WYA carries as the newer supplier.'},
+  {label:'Other activity', re:/./,
+   so:'Collected and shown for completeness — no specific signal detected. Worth a glance rather than an action.'},
+];
+/* Ordered by how directly it bears on a competitor's behaviour towards our market.
+   A price move or a product change is a competitor acting; a crush incident elsewhere
+   is market context. Crowd safety and regulation sit below competitor activity for
+   that reason, not because they matter less. */
+const SIGNAL_ORDER=['Pricing & commercial','Product & positioning','Wins & customers',
+                    'Ownership & funding','Leadership changes','Governance & strategy',
+                    'Hiring & careers',
+                    'Financial results','Recognition & profile','Market health',
+                    'Regulation & compliance','Crowd safety incidents','Other activity'];
+
+function classify(f){
+  const t=(f.title||'').toLowerCase();
+  const u=(f.url||'').toLowerCase();
+  for(const s of SIGNALS){
+    if(s.kinds && !s.kinds.includes(f.kind)) continue;
+    // Checked against the URL, not the title: a page_change title is a synthesised
+    // diff summary that can carry another section's nav text along with it (a
+    // careers-page diff that happens to quote a "Partners" nav link would otherwise
+    // misclassify as a partnership). The URL path is what the page actually is.
+    if(s.pages && !s.pages.some(p=>u.includes(p))) continue;
+    if(s.re && !s.re.test(t)) continue;
+    return s;
+  }
+  return null;
+}
+/* Written analysis beats a pattern match, and the two must never look alike. A
+   template that reads like a judgement is the one thing that would make this page
+   untrustworthy in front of the business, so an unreviewed line says so. */
+/* How near in time a bare competitor_id match may reach.
+
+   The fallback used to be unbounded: an entry with no url and no match phrase
+   claimed EVERY item for that company, forever. Measured across the nine that
+   compete: 486 of 487 items rendered a "Why it matters" box, but only 82 were
+   tied to a specific judgement. One Apple entry was credited for 41 items, one
+   Purple entry for 21 - so an item about an AirTag discount carried a paragraph
+   written about something else entirely, presented as a reading of that item.
+
+   An analysis written on a given day is plausibly about that day's movements, not
+   about one from four months earlier. Fourteen days is deliberately generous: a
+   judgement written on Monday about a change first seen the previous Tuesday
+   still applies. Beyond that the honest answer is that this item was not judged,
+   and the template tier already says so. */
+const ANALYSIS_NEAR_DAYS = 14;
+
+function reviewedFor(f, sig){
+  const fd = when(f) ? new Date(when(f)).getTime() : null;
+  for(const a of ((ANALYSIS||{}).reviewed)||[]){
+    /* A judgement cannot be about something that had not happened when it was
+       written. Without this, an entry keyed to a page's url or a title phrase
+       claimed every LATER change to that page too: the front page showed a
+       25 September change to Purple's pricing page under a "Why it matters"
+       written on 21 August - old analysis presented as today's. One day of
+       grace covers a change collected just after midnight UTC. */
+    if(fd!==null && a.date &&
+       fd > new Date(a.date+'T23:59:59Z').getTime() + 864e5) continue;
+    /* An entry that names a url is a claim about THAT item and nothing else.
+       It used to fall through to the date fallback below when the url did not
+       match, so every generated analysis re-attached itself to every other item
+       from the same entity for fourteen days. Live on the front page: a headline
+       about one ticketing company's acquisition carried an analysis written about
+       a different company's funding round, and a Cisco product page carried an
+       analysis of their pricing page. Same failure family as an entry with no
+       match phrase claiming everything - a judgement shown against an item it was
+       not written about is worse than no judgement at all. */
+    // A news row keeps its original Google link as gnews_url once the publisher's
+    // URL is swapped in, so a judgement written against the Google link still finds it.
+    if(a.url){ if(a.url===f.url || (f.gnews_url && a.url===f.gnews_url)) return a; continue; }
+    if(!a.competitor_id || a.competitor_id!==f.competitor_id) continue;
+    if(a.signal && sig && a.signal!==sig.label) continue;
+    if(a.match){
+      // An explicit phrase is a deliberate claim about which items this covers.
+      if(String(f.title||'').toLowerCase().includes(a.match.toLowerCase())) return a;
+      continue;
+    }
+    // Bare competitor_id: only for items near the entry's own date.
+    if(fd===null || !a.date) continue;
+    const ad = new Date(a.date+'T12:00:00Z').getTime();
+    if(Math.abs(fd-ad) <= ANALYSIS_NEAR_DAYS*864e5) return a;
+  }
+  return null;
+}
+function whyMatters(f, sig){
+  const rev = reviewedFor(f, sig);
+  if(rev) return {text:rev.text, kind:rev.generated?'generated':'analysis',
+                  sources:rev.sources||[], date:rev.date, model:rev.model};
+  // A company's or topic's own stated reason is written text, but it is standing
+  // context about the entity rather than a reading of this week's item. Labelling it
+  // as analysis would be the same dishonesty as labelling a template that way.
+  const own = CLIENTS && [...(CLIENTS.clients||[]),...(CLIENTS.sector_topics||[])]
+    .find(x=>x.id===f.competitor_id);
+  if(own && own.why_it_matters) return {text:own.why_it_matters, kind:'context', sources:[]};
+  const comp = DATA.competitors.find(c=>c.id===f.competitor_id);
+  if(comp && comp.why_it_matters) return {text:comp.why_it_matters, kind:'context', sources:[]};
+  return {text:sig.so, kind:'template', sources:[]};
+}
+/* Shared with renderLatest(): the same three-tier honesty labelling everywhere a
+   "why it matters" line appears, so the front-page ticker and the grouped movement
+   cards never disagree about what counts as a reviewed judgement. */
+function whyBox(why){
+  if(!why) return '';
+  return ({
+    analysis:`<div class="why"><b>Why it matters.</b> ${esc(why.text)}
+        ${why.sources.length?`<div class="note" style="margin-top:6px">${
+          why.sources.map(linkify).join(' · ')}</div>`:''}</div>`,
+    /* The disclaimer used to be its own second line, so seven items on one screen
+       repeated the identical sentence and the page read as filler. It is now a tag
+       on the label itself — the honesty is unchanged, the repetition is not. */
+    context:`<div class="why" style="border-left-color:var(--muted)">
+        <b>Standing context</b> <span class="note">— background on the entity, not
+        a reading of this item.</span> ${esc(why.text)}</div>`,
+    /* No provenance disclaimer. The owner asked for this label removed everywhere
+       on 2026-09-09: the analysis is reviewed before it ships and the tag was
+       undermining it in front of the people it is written for. Rendered exactly
+       like a written judgement, because that is what it is treated as. */
+    generated:`<div class="why"><b>Why it matters.</b> ${esc(why.text)}
+        ${why.sources.length?`<div class="note" style="margin-top:6px">${
+          why.sources.map(linkify).join(' · ')}</div>`:''}</div>`,
+    template:`<div class="why" style="border-left-color:var(--muted);opacity:.8">
+        <b style="color:var(--muted)">Pattern match, not a judgement.</b>
+        ${esc(why.text)}</div>`
+  })[why.kind] || '';
+}
+/* One renderer, called once per entity type, so a heading never carries the wrong
+   kind of item — competitor movement, sector movement and client movement are three
+   different questions, and all three were asked for separately. */
+function renderChanged(sel, type, groupCap){
+  const wk=Date.now()-7*864e5;
+  const items=FEED.filter(f=>{
+    const t=when(f)?new Date(when(f)).getTime():0;
+    return t>=wk && f.entity_type===type && competes(f);
+  }).map(f=>({f,sig:classify(f)})).filter(x=>x.sig);
+
+  if(!items.length){
+    $(sel).innerHTML=`<div class="card"><p class="note" style="margin:0">
+      Nothing classified as a movement in the last seven days. That is a real
+      result for this market, not a collection failure — several tracked companies
+      publish nothing for weeks. Everything collected is on the Competitor activity tab, and
+      page-change detection reports from the second run onward.</p></div>`;
+    return;
+  }
+  const groups={};
+  for(const x of items) (groups[x.sig.label] ||= []).push(x);
+
+  const ENT={client:'CLIENT',competitor:'COMPETITOR',sector:'MARKET'};
+  // front page carries the three strongest signal groups; the rest is on Activity
+  const shownG=SIGNAL_ORDER.filter(g=>groups[g]), moreG=shownG.slice(groupCap);
+  $(sel).innerHTML = shownG.slice(0,groupCap).map(g=>{
+    const rows=groups[g].sort((a,b)=>(when(b.f)||'').localeCompare(when(a.f)||''));
+    // one why-line per company per group: the reason does not change per headline
+    const seen=new Set();
+    return `<div class="card">
+      <h3 style="margin:0 0 12px">${esc(g)}
+        <span class="n" style="color:var(--muted);font-weight:400;font-size:13px">
+        · ${rows.length}</span></h3>
+      ${rows.slice(0,4).map(({f,sig})=>{
+        const key=f.competitor_id+'|'+sig.label;
+        const why=seen.has(key)?'':(seen.add(key), whyMatters(f,sig));
+        const comp=DATA.competitors.find(c=>c.id===f.competitor_id);
+        return `<div class="mv">
+          <div class="mvh">
+            <span class="tag">${esc(ENT[f.entity_type]||'')}</span>
+            <b>${esc(f.competitor)}</b>
+            ${comp&&comp.threat==='high'?`<span class="t t-high">high threat</span>`:''}
+            <span class="when" style="margin-left:auto">${fmtDate(when(f))}</span>
+          </div>
+          <a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.title)}</a>
+          ${f.publisher?`<span class="note"> · ${esc(f.publisher)}</span>`:''}
+          ${whyBox(why)}
+        </div>`;
+      }).join('')}
+      ${rows.length>4?`<p class="note" style="margin:10px 0 0">…and ${rows.length-4}
+        more in this group on the Competitor activity tab.</p>`:''}
+    </div>`;
+  }).join('') + (moreG.length ? `<p class="note" style="margin:2px 0 0">Also detected
+     this week: ${moreG.map(g=>`${g.toLowerCase()} (${groups[g].length})`).join(', ')} —
+     on the Competitor activity tab.</p>` : '');
+}
+
+/* Whitespace, computed from the matrix rather than asserted. An axis only counts
+   as whitespace where WYA is yes and no company chasing the same budget matches it.
+   The near-misses are returned too — a claim is only usable with its limit. */
+function whitespace(axis){
+  const w=(DATA.wya.capabilities||{})[axis.id]||{};
+  if(w.value!=='yes') return null;
+  const val=c=>((c.capabilities||{})[axis.id]||{}).value;
+  const has=DATA.competitors.filter(c=>val(c)==='yes'||val(c)==='partial');
+  const contest=has.filter(c=>c.threat==='high'||c.threat==='medium');
+  if(contest.some(c=>val(c)==='yes')) return null;   // fully matched where it counts
+  // A partial from a company chasing the same budget is not whitespace. Saying it is
+  // invites a correction in the room, so the card is downgraded rather than dropped.
+  return {axis, has, contest, unknown:DATA.competitors.filter(c=>val(c)==='unknown'),
+          clear: contest.length===0};
+}
+/* Findings carry multi-sentence reasoning. The front page shows the first sentence and
+   folds the rest, so the page stays scannable without discarding the detail. */
+function limitHTML(limit){ return foldHTML('Where the evidence stops.', limit, 'act', 'margin-top:11px'); }
+function foldHTML(label, body, cls, style){
+  const t=String(body||'').replace(/\s+/g,' ').trim();
+  // Keep taking sentences until the summary actually says something — a lead-in like
+  // "Three consequences." is a worse preview than no preview.
+  let cut=-1, from=0;
+  while(from<t.length){
+    const i=t.slice(from).search(/\.\s+\S/);
+    if(i<0){ cut=-1; break; }
+    cut=from+i;
+    if(cut+1>=45) break;
+    from=cut+1;
+  }
+  const head=cut<0?t:t.slice(0,cut+1), rest=cut<0?'':t.slice(cut+1).trim();
+  return `<div class="${cls||''}" style="${style||''}">
+    <b>${esc(label)}</b> ${esc(head)}
+    ${rest?`<details style="margin-top:6px"><summary style="cursor:pointer;
+      font-size:13px;color:var(--muted)">More detail</summary>
+      <div style="margin-top:6px">${esc(rest)}</div></details>`:''}</div>`;
+}
+function sayCard(claim, limit, src, tag){
+  return `<div class="card">
+    <div class="mvh" style="margin-bottom:9px">
+      <span class="tag">${esc(tag)}</span></div>
+    <p class="stmt" style="margin:0;font-size:17px">${esc(claim)}</p>
+    ${limitHTML(limit)}
+    ${src?`<p class="note" style="margin:9px 0 0">Source: ${linkify(src)}</p>`:''}
+  </div>`;
+}
+const SHOWN=new Set();
+function renderSay(){
+  const out=[], caveats=[];
+  for(const ax of DATA.matrix_axes){
+    const ws=whitespace(ax); if(!ws) continue;
+    const nm=c=>`${c.name} — ${c.threat} threat, ${((c.capabilities||{})[ax.id]||{}).value}`;
+    const unk=`${ws.unknown.length} of ${DATA.competitors.length} companies are unassessed
+      on this axis and held as unknown rather than as a no, so this covers the assessed
+      set, not the whole market.`;
+    caveats.push(ws.clear
+      ? sayCard(
+          `${ax.label}: no company chasing the same budget line offers it.`,
+          `${ws.has.length?`Only ${ws.has.map(nm).join('; ')} — neither competes for the
+            same budget. `:''}${unk}`,
+          (DATA.wya.capabilities[ax.id]||{}).source, 'UNMATCHED IN THE CORE SET')
+      : sayCard(
+          `${ax.label}: narrowed, not unique — ${ws.contest.length} ${
+            ws.contest.length===1?'company':'companies'} chasing the same budget partly matches it.`,
+          `${ws.contest.map(nm).join('; ')}. The gap is real but not absolute, so it does
+            not carry a comparison against these companies on its own. ${unk}`,
+          (DATA.wya.capabilities[ax.id]||{}).source, 'CONTESTED'));
+  }
+  const sales=DATA.open_questions
+    .filter(q=>/sales/i.test(q.owner||'') && ['priority','strategic'].includes(q.severity))
+    .sort((a,b)=>(SEV[a.severity]??9)-(SEV[b.severity]??9)).slice(0,5);
+  for(const q of sales) SHOWN.add(q.id);
+  for(const q of sales) out.push(sayCard(q.title, q.resolution,
+    (q.sources||[]).join(' · '), q.severity==='priority'?'KEY FINDING':'MARKET POSITION'));
+
+  out.push(...caveats);
+  $('#say').innerHTML = out.length ? out.join('')
+    : `<div class="card"><p class="note" style="margin:0">No claim currently clears
+       the sourcing bar. That is the control working, not an empty week.</p></div>`;
+}
+function renderCallprep(){
+  if(!CLIENTS) return;
+  const wk=Date.now()-7*864e5;
+  const rows=(CLIENTS.clients||[]).map(c=>({c,
+    items:FEED.filter(f=>f.competitor_id===c.id&&when(f)&&new Date(when(f)).getTime()>=wk)
+      .sort((a,b)=>when(b).localeCompare(when(a)))}))
+    .filter(r=>r.items.length)
+    .sort((a,b)=>when(b.items[0]).localeCompare(when(a.items[0])));
+  // A live proposal or deployment is a different read from a name on a prospect list,
+  // so the relationship is labelled rather than flattened into "client".
+  const REL={deployment:'DEPLOYMENT',proposal_sent:'PROPOSAL OUT',partner:'PARTNER',
+             prospect:'PROSPECT'};
+  const shown=rows.slice(0,8);
+  $('#callprep').innerHTML = rows.length ? shown.map(({c,items})=>`
+    <div class="card">
+      <div class="mvh">
+        <span class="tag">${esc(REL[c.engagement]||'ACCOUNT')}</span>
+        <b>${c.website?`<a href="${esc(c.website)}" target="_blank" rel="noopener">${
+          esc(c.name)}</a>`:esc(c.name)}</b>
+        <span class="owner" style="margin-left:auto">${items.length} new item${
+          items.length===1?'':'s'}</span>
+      </div>
+      ${items.slice(0,3).map(f=>`<div style="margin-top:8px;font-size:14.5px">
+        <span class="when">${fmtDate(when(f))}</span>
+        <a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.title)}</a>
+        ${f.publisher?`<span class="note"> · ${esc(f.publisher)}</span>`:''}</div>`).join('')}
+      ${(()=>{const a=((ANALYSIS||{}).reviewed||[]).find(x=>x.competitor_id===c.id);
+        return a?`<div class="why" style="margin-top:11px">
+          <b>What this means for us.</b> ${esc(a.text)}
+          ${(a.sources||[]).length?`<div class="note" style="margin-top:6px">${
+            a.sources.map(linkify).join(' · ')}</div>`:''}</div>`:'';})()}
+      ${items.length>3?`<p class="note" style="margin:9px 0 0">…and ${items.length-3}
+        more on the Clients tab.</p>`:''}
+    </div>`).join('') + (rows.length>shown.length
+      ? `<p class="note" style="margin:10px 0 0">${rows.length-shown.length} further
+         account${rows.length-shown.length===1?'':'s'} moved this week — all on the
+         Clients tab.</p>` : '')
+    : `<div class="card"><p class="note" style="margin:0">No account moved publicly in
+       the last seven days. Standing background on every account is on the Clients
+       tab.</p></div>`;
+}
+
+/* The front page had no answer to "what has just happened" — the feeds all moved to
+   tabs. This is the newest activity across every type, so the first screen shows
+   movement rather than only conclusions. */
+function renderLatest(n){
+  const KIND={news:'press',post:'published',page_change:'page changed',
+              new_page:'new page',app_release:'app release'};
+  const ENT={competitor:'COMPETITOR',client:'CLIENT',sector:'MARKET'};
+  /* Judged items only. Measured 2026-09-22 across the previous seven days: 153
+     items collected, 29 with a written judgement. The other 124 were arriving on
+     the front page as bare headlines - a competitor's registered office address
+     changing on a careers page, three near-identical rows for the same page edit -
+     and the reader had to do the sorting the page exists to do for them. They are
+     not deleted: every one is still on Competitor activity, Clients and The space,
+     and the count below says how many there are, so a thin week reads as a thin
+     week rather than as a monitor that stopped looking. */
+  const all=FEED.filter(f=>when(f)&&competes(f))
+    .sort((a,b)=>when(b).localeCompare(when(a)));
+  const judged=all.filter(f=>{
+    const w=whyMatters(f, classify(f));
+    return w && (w.kind==='analysis'||w.kind==='generated') && w.text;
+  });
+  const items=judged.slice(0,n||10);
+  const wk=Date.now()-7*864e5;
+  const unjudged=all.filter(f=>new Date(when(f)).getTime()>=wk && !judged.includes(f)).length;
+  const tail=unjudged?`<p class="note" style="padding:12px 20px 2px;margin:0;
+    border-top:1px solid var(--line)">${unjudged} further item${unjudged===1?'':'s'}
+    collected this week carr${unjudged===1?'ies':'y'} no written judgement yet.
+    All of them are on Competitor activity, Clients and The space.</p>`:'';
+  if(!items.length){ $('#latest').innerHTML=`<p class="note" style="padding:18px 20px;
+    margin:0">Nothing has been judged yet. ${unjudged} item${unjudged===1?'':'s'}
+    collected this week ${unjudged===1?'is':'are'} waiting on the other tabs.</p>`; return; }
+  /* One analysis entry can match several items from the same company — matching
+     falls back to competitor_id when there is no url or phrase match — so the same
+     paragraph was printing under two, three or four consecutive rows. On a feed
+     that is now the first thing on the page, that reads as the page repeating
+     itself. Each judgement is shown once, on the newest item it applies to; the
+     rows below it keep the headline and lose the duplicate block. */
+  const seenWhy=new Set();
+  $('#latest').innerHTML = items.map(f=>{
+    // A page_change or new_page title is a synthesised diff summary or a URL slug,
+    // neither of which says what kind of move it is. classify() already sorts that
+    // out for the "What moved this week" cards below — show the same tag here so a
+    // page or new-feature move doesn't need a click-through to place it.
+    const sig=(f.kind==='new_page'||f.kind==='page_change')?classify(f):null;
+    const why=whyMatters(f, classify(f));
+    const key=why&&why.text?why.kind+'|'+why.text:'';
+    const showWhy=key&&!seenWhy.has(key);
+    if(showWhy) seenWhy.add(key);
+    return `
+    <div class="item" style="grid-template-columns:96px 108px 1fr">
+      <span class="when">${fmtDate(when(f))}</span>
+      <span><span class="tag">${esc(ENT[f.entity_type]||'')}</span></span>
+      <span><b>${esc(f.competitor)}</b> — ${f.url?`<a href="${esc(f.url)}" target="_blank"
+        rel="noopener">${esc(f.title)}</a>`:esc(f.title)}
+        ${sig?` <span class="tag" style="color:var(--teal-ink)">${esc(sig.label)}</span>`:''}
+        <span class="note"> · ${esc(KIND[f.kind]||f.kind||'')}${
+          f.publisher?' · '+esc(f.publisher):''}${
+          isHeadlineOnly(f)?' · headline only, article not read':''}</span>
+        ${(f.added||[]).length?`<div class="note" style="margin-top:4px"><b>Changed:</b> ${
+          f.added.slice(0,2).map(esc).join(' · ')}</div>`
+          :(f.now_lines||[]).length?`<div class="note" style="margin-top:4px"><b>Page now
+            says:</b> ${f.now_lines.slice(0,2).map(esc).join(' · ')}</div>`:''}
+        ${showWhy?whyBox(why):''}</span>
+    </div>`;
+  }).join('') + tail;
+}
+
+/* The daily analysis, shown as its own section rather than only attached to feed
+   items. Competitors and clients together, because a founder reading this wants the
+   day, not one half of it. */
+function analysisNameOf(id){
+  const c=DATA.competitors.find(x=>x.id===id);
+  if(c) return {name:c.name, kind:'COMPETITOR'};
+  const cl=CLIENTS&&(CLIENTS.clients||[]).find(x=>x.id===id);
+  if(cl) return {name:cl.name, kind:'CLIENT'};
+  // Sector topics (event-tech-deals, stadium-smart-venue, ...) were falling through
+  // to the raw id slug here, so a market-read analysis card showed literally
+  // "event-tech-deals" instead of "Event technology funding and acquisitions".
+  const sec=CLIENTS&&(CLIENTS.sector_topics||[]).find(x=>x.id===id);
+  if(sec) return {name:sec.name, kind:'MARKET'};
+  return {name:id||'Market', kind:'MARKET'};
+}
+function analysisCard(a){
+  const m=analysisNameOf(a.competitor_id);
+  return `<div class="card">
+    <div class="mvh"><span class="tag">${esc(m.kind)}</span><b>${esc(m.name)}</b>
+</div>
+    <div style="margin-top:9px;font-size:15px;line-height:1.6">${esc(a.text)}</div>
+    ${(a.sources||[]).length?`<p class="note" style="margin:9px 0 0">${
+      a.sources.map(linkify).join(' · ')}</p>`:''}</div>`;
+}
+/* Competitor and client/market analysis used to sit in one block on the front page.
+   Competitors already have their own reference tab (Competitor activity), so a second
+   copy here was exactly the "information dump" complaint — split the same data instead
+   of duplicating it. */
+function renderTodaysAnalysis(){
+  const all=((ANALYSIS||{}).reviewed||[]).filter(a=>a.text&&a.date);
+  if(!all.length){
+    $('#todays').innerHTML=`<div class="card"><p class="note"
+      style="margin:0">No analysis written yet for the latest run.</p></div>`;
+    $('#competitor-analysis').innerHTML='';
+    return;
+  }
+  /* A week, not a day. This section showed only the newest date's entries, which
+     is right for whoever opens the page every morning and wrong for everybody
+     else: judgements written on Monday were invisible by Wednesday. The people
+     this is written for read it weekly, so six days of work was being thrown away
+     between one visit and the next. Newest first, capped, with the date on every
+     card so nothing reads as fresher than it is. */
+  const latest=all.reduce((m,a)=>a.date>m?a.date:m,'');
+  const weekAgo=new Date(new Date(latest+'T12:00:00Z').getTime()-7*864e5)
+    .toISOString().slice(0,10);
+  const today=all.filter(a=>a.date>=weekAgo).sort((a,b)=>b.date.localeCompare(a.date));
+  const comp=today.filter(a=>analysisNameOf(a.competitor_id).kind==='COMPETITOR');
+  const cli=today.filter(a=>analysisNameOf(a.competitor_id).kind!=='COMPETITOR');
+  $('#todays').innerHTML =
+    `<p class="note" style="margin:-4px 0 12px">${cli.length} written in the seven
+      days to ${fmtDate(latest)} about clients and the wider market.${comp.length?
+      ` ${comp.length} more on competitors are on the <b>Competitor activity</b>
+        tab.`:''}</p>`+
+    (cli.length?cli.map(analysisCard).join(''):
+      `<div class="card"><p class="note" style="margin:0">No client or market
+        analysis written for the latest run.</p></div>`);
+  /* One card per company, not one per judgement. Widening this section from a day
+     to a week took it from a handful of cards to 42, about 33,000 characters - the
+     same overflow problem the front page had, just made of good material instead of
+     noise. Each company shows its newest judgement and says how many more it has;
+     the rest are a click away on the company's own brief. */
+  const perCompany=[];
+  const compSeen=new Map();
+  for(const a of comp){
+    const n=(compSeen.get(a.competitor_id)||0)+1;
+    compSeen.set(a.competitor_id, n);
+    if(n===1) perCompany.push(a);
+  }
+  const compCards=perCompany.map(a=>{
+    const more=(compSeen.get(a.competitor_id)||1)-1;
+    return analysisCard(a)+(more?`<p class="note" style="margin:-6px 0 14px 2px">
+      ${more} more written about ${esc(analysisNameOf(a.competitor_id).name)} this
+      week — see their brief.</p>`:'');
+  }).join('');
+  $('#competitor-analysis').innerHTML = comp.length
+    ? `<p class="note" style="margin:-4px 0 12px">${comp.length} written in the
+        seven days to ${fmtDate(latest)}, across ${perCompany.length}
+        ${perCompany.length===1?'company':'companies'}. Newest first, one card each.</p>`+compCards
+    : `<p class="note" style="margin:0">No competitor analysis for the latest run.
+        The categorised movements below are grouped by pattern, not judged.</p>`;
+}
+
+function renderActions(){
+  const rank={priority:0,conflict:1,stale:2,blocker:3,strategic:4,gap:5,info:6};
+  const all=[...DATA.open_questions,
+             ...((CLIENTS&&CLIENTS.findings)||[]).map(f=>({...f,class:'market'}))];
+  const top=all.filter(q=>!SHOWN.has(q.id))
+    .filter(q=>['priority','conflict','strategic','blocker'].includes(q.severity))
+    .sort((a,b)=>(b.public_answer?1:0)-(a.public_answer?1:0)
+      ||(rank[a.severity]??9)-(rank[b.severity]??9)).slice(0,5);
+  $('#actions').innerHTML = top.map(q=>`
+    <div class="finding ${esc(q.severity)}">
+      <div class="top">
+        <span class="b b-unverified">${esc(q.severity)}</span>
+        <h3>${esc(q.title)}</h3>
+        ${q.owner?`<span class="owner">${esc(q.public_answer?'answered from public sources':q.owner)}</span>`:''}
+      </div>
+      ${q.public_answer?`<div class="why" style="margin-top:9px">
+        ${foldHTML('What the public record says.', q.public_answer)}
+        ${(q.answer_sources||[]).length?`<p class="note" style="margin:8px 0 0">${
+          q.answer_sources.map(linkify).join('<br>')}</p>`:''}</div>`:''}
+      ${foldHTML('What this means.', q.resolution, 'act', 'margin-top:8px')}
+      ${(q.sources||[]).length?`<p class="note" style="margin:9px 0 0">Source: ${
+        q.sources.map(linkify).join(' · ')}</p>`:`<p class="note" style="margin:9px 0 0">
+        Source: our own records only — nothing published externally.</p>`}
+    </div>`).join('');
+}
+
+/* ---------- scoreboard ---------- */
+/* The front page answers one question first: did any company I sell against move
+   this week, what does it cost, and what does that mean. Everything that was here
+   before is still here, below the fence. */
+
+/* A published rate, its history, and an honest blank. `observed` is what the
+   scraper read today; `headline` is what a person wrote. When they disagree the
+   card shows both rather than silently picking one — pricing.py flags it. */
+function priceLine(c){
+  const p=c.pricing;
+  if(!p) return `<div class="sbprice unpriced">Pricing not yet checked.</div>`;
+  const obs=p.observed||{};
+  /* A dead pricing page used to return here, before the history was built - so the
+     company with the richest recorded price history and the deadest page, VenuIQ,
+     showed four recorded price changes on no screen at all. A page that has gone is
+     the case where what it used to say matters most. */
+  const dead = obs.unreachable ? `<div class="sbprice unpriced">
+    Their pricing page no longer resolves (HTTP ${esc(obs.http||'error')}).
+    ${p.headline?`Last known: ${esc(p.headline)}.`:''}</div>` : null;
+  const shown = p.headline || obs.headline || '';
+  /* Only comparable points belong on one timeline. Crowd Connected publishes three
+     separate price lists, so an unfiltered history read
+     "€55 monthly -> €0.05 per m2 -> £6 per delegate", which looks like a company
+     that cut its price by 99% rather than two unrelated products. Keep the points
+     that share a unit with the current rate; that is the progression a buyer
+     actually compares. */
+  const unitOf = t => (String(t||'').match(
+    /per\s+(delegate|attendee|head|person|user|visitor|device|tag|seat|event|month|year|m2|m²)/i)
+    ||[])[1]?.toLowerCase()||'';
+  const nowUnit = unitOf(obs.headline||p.headline||'');
+  /* Two sources feed one timeline. `history` is machine-built from archive.org by
+     pricing.py --wayback and is overwritten on every render from pricing_findings.
+     `prior` is hand-written for a rate that archive.org cannot reach - Mapsted's
+     withdrawn 2021 self-serve list survives only in a press release and in their
+     own comparison page - so it must not live in a field a scan will clobber. */
+  let hist = [...(p.prior||[]), ...(p.history||[])]
+    .filter(h=>h.headline||h.quote_only)
+    .sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+  /* A timeline shows price CHANGES, not crawl dates. Crowd Connected has twelve
+     archived captures and four of them say £8, so the strip read
+     "£8 · £8 · £8 · £8 · now" - four pills carrying one fact. Consecutive captures
+     with the same headline collapse to the first, which is the date the price
+     actually moved. */
+  hist = hist.filter((h,i)=>i===0 ||
+    (h.headline||(h.quote_only?'quote only':'')) !==
+    (hist[i-1].headline||(hist[i-1].quote_only?'quote only':'')));
+  if(nowUnit) hist = hist.filter(h=>!h.headline||unitOf(h.headline)===nowUnit);
+  /* What the page says TODAY is the last point on the line, whatever it says. It
+     used to be added only when there was a current figure, so a withdrawn price
+     lost its ending: Mapsted's six captures all read $250/mo, collapsed to one
+     pill, and the strip vanished for failing a "more than one point" test - on
+     exactly the company whose price story IS the withdrawal. A price that was
+     published and is not any more is the most useful shape on this page. */
+  const nowPill = obs.headline ? obs.headline
+    : (obs.unreachable ? 'page gone' : (obs.quote_only ? 'quote only' : ''));
+  let histHtml='';
+  const pts=hist.map(h=>`<span class="pp">${esc(h.headline||'quote only')}
+      <span class="was">${esc((h.date||'').slice(0,7))}</span></span>`);
+  if(nowPill) pts.push(`<span class="pp now">${esc(nowPill)}
+      <span class="was">now</span></span>`);
+  if(pts.length>1) histHtml=`<div class="phist">${pts.join('')}</div>`;
+  const disagree = p.disagrees && obs.headline
+    ? `<div class="was">Their page today reads ${esc(obs.headline)} — not yet
+       reconciled with the line above.</div>` : '';
+  if(dead) return dead + histHtml;
+  if(!shown) return `<div class="sbprice unpriced">No published price.</div>${histHtml}`;
+  return `<div class="sbprice"><span class="num">${esc(shown)}</span></div>
+    ${disagree}${histHtml}`;
+}
+
+/* A card carries the finding, not the whole judgement. Printing the full analysis
+   text here reproduced the exact complaint this redesign exists to fix: three
+   paragraphs per company, nine companies, and nothing scannable. The rest is one
+   click away on the brief. Mirrors _one_line() in notify.py, which caps the Slack
+   message the same way and for the same reason. */
+function firstSentence(t){
+  const s=String(t||'').trim();
+  if(s.length<=190) return s;
+  /* Quote-aware. A naive /[.!?]/ split cut
+     'the prompt "You've got Spaces Licenses? Let's Find Them!" twice above...'
+     down to '...Spaces Licenses?.' — the terminator was inside a quotation, and
+     the card lost the whole point of the sentence. Terminators inside an
+     unclosed double quote are skipped. */
+  let inQuote=false;
+  for(let i=0;i<s.length;i++){
+    const c=s[i];
+    if(c==='"'||c==='\u201c'||c==='\u201d'){ inQuote=!inQuote; continue; }
+    if(inQuote||i<20) continue;
+    if(c==='.'||c==='!'||c==='?'){
+      const next=s[i+1];
+      if(next===undefined) return s;
+      if(/\s/.test(next)) return s.slice(0,i+1);
+    }
+  }
+  return s.slice(0,190).replace(/\s\S*$/,'')+'\u2026';
+}
+
+/* Findings for one company, newest first. Every entry renders identically -
+   the provenance label was removed from every surface on 2026-09-09. */
+function findingsFor(id, n){
+  return ((ANALYSIS||{}).reviewed||[])
+    .filter(a=>a.competitor_id===id && a.text && a.date)
+    .sort((a,b)=>b.date.localeCompare(a.date))
+    .slice(0,n||2);
+}
+
+function renderScoreboard(){
+  const wk=Date.now()-7*864e5;
+  const rank={high:0,medium:1,low:2,none:3};
+  const cards=DATA.competitors
+    .filter(c=>c.threat==='high'||c.threat==='medium')
+    .map(c=>{
+      const items=FEED.filter(f=>f.competitor_id===c.id&&when(f)
+        &&new Date(when(f)).getTime()>=wk);
+      return {c, items, finds:findingsFor(c.id,1)};
+    })
+    .sort((a,b)=>(b.items.length?1:0)-(a.items.length?1:0)
+      ||rank[a.c.threat]-rank[b.c.threat]
+      ||b.items.length-a.items.length
+      ||a.c.name.localeCompare(b.c.name));
+
+  $('#scoreboard').innerHTML = cards.map(({c,items,finds})=>{
+    const moved=items.length>0;
+    /* A card with no written analysis must not look like a card with one. It shows
+       the movement count and says plainly that nobody has judged it yet. */
+    const body = finds.length
+      ? finds.map(a=>`<p class="sbfind">${esc(firstSentence(a.text))}</p>`).join('')
+      : (moved
+          ? `<p class="sbfind">${items.length} movement${items.length===1?'':'s'}
+             this week, <b>none judged yet</b>. Latest:
+             ${esc(firstSentence(items[0].title||''))}</p>`
+          : `<p class="sbfind">Nothing picked up in the last seven days.</p>`);
+    return `<div class="sbc ${moved?'moved':'quiet'}">
+      <div class="sbtop">
+        <b>${esc(c.name)}</b>
+        <span class="t t-${esc(c.threat)}">${esc(c.threat)}</span>
+        <span class="sbstate">${moved?`&#9650; moved`:'quiet'}</span>
+      </div>
+      ${priceLine(c)}
+      ${body}
+      <div class="sbmeta">
+        <a href="#" data-brief="${esc(c.id)}">Read the brief &rarr;</a>
+        ${items.length?`<a href="#" data-acts="${esc(c.id)}" class="note">${
+          items.length} movement${items.length===1?'':'s'} &rarr;</a>`:''}
+      </div></div>`;
+  }).join('');
+
+  $('#scoreboard').onclick = e=>{
+    const b=e.target.closest('[data-brief]'), a=e.target.closest('[data-acts]');
+    if(b){ e.preventDefault(); goTab('briefs'); renderDetail(b.dataset.brief);
+           const btn=$(`#picker button[data-id="${b.dataset.brief}"]`);
+           if(btn) btn.scrollIntoView({block:'nearest'}); }
+    else if(a){ e.preventDefault(); goTab('activity','#changed'); }
+  };
+}
+
+/* ---------- overview ---------- */
+function renderOverview(){
+  const m=DATA.market_read, C=DATA.competitors;
+  $('#hero-stmt').textContent = m.headline;
+  $('#hero-sum').textContent  = m.summary;
+
+  const win7=Date.now()-7*864e5;
+  const inWeek=f=>when(f)&&new Date(when(f)).getTime()>=win7;
+  const pageChanges=FEED.filter(f=>inWeek(f)&&
+    (f.kind==='page_change'||f.kind==='new_page')).length;
+  const activeCos=new Set(FEED.filter(inWeek).map(f=>f.competitor_id)).size;
+
+  const stat=(n,l,s,a,to)=>`<button type="button" class="stat ${a?'accent':''}"
+    ${to?`data-tab="${to[0]}" data-sel="${to[1]}" title="Show these on the ${
+    TABS.find(t=>t[0]===to[0])[1]} tab"`:''}><div class="n">${n}</div>
+    <div class="l">${l}</div>${s?`<div class="s">${s}</div>`:''}</button>`;
+  $('#stats').innerHTML =
+    stat(C.filter(c=>c.threat==='high').length,'High threat','Direct segment overlap',
+      true,['matrix','#threat-table'])+
+    stat(C.length,'Companies tracked',`${C.filter(c=>c.tier==='core').length} in the core set`,
+      false,['matrix','#matrix'])+
+    stat(C.filter(c=>c.status!=='active').length,'Exited or absorbed','Since 2021',
+      false,['matrix','#threat-table'])+
+    stat(pageChanges,'Page changes this week','Pricing, product and sector pages',
+      false,['activity','#changed'])+
+    stat(activeCos,'Companies that moved','Of those we track, last 7 days',
+      false,['activity','#changed']);
+  $('#stats').onclick = e=>{
+    const b=e.target.closest('button[data-tab]'); if(b) goTab(b.dataset.tab,b.dataset.sel);
+  };
+
+  renderScoreboard();
+  renderChanged('#changed','competitor',6); renderCallprep();
+  renderChanged('#spacechg','sector',4); renderSay(); renderActions(); renderTodaysAnalysis();
+  renderLatest(10);
+
+  // threat table — reference, so it lives on the Matrix tab
+  const rank=t=>THREATS.indexOf(t);
+  const rows=[...C].sort((a,b)=>rank(a.threat)-rank(b.threat)||a.name.localeCompare(b.name));
+  $('#threat-table').innerHTML = `<thead><tr>
+      <th>Threat</th><th>Company</th><th>Why it is rated this way</th>
+      <th class="nowrap">Latest activity</th>
+    </tr></thead><tbody>${rows.map(c=>{
+      const items=FEED.filter(f=>f.competitor_id===c.id&&when(f)).sort((x,y)=>when(y).localeCompare(when(x)));
+      return `<tr class="${c.threat==='none'?'dim':''}">
+        <td><span class="t t-${esc(c.threat)}">${esc(c.threat)}</span></td>
+        <td><b>${esc(c.name)}</b>${c.status!=='active'?
+            `<span class="pill p-${esc(c.status)}">${esc(c.status)}</span>`:''}</td>
+        <td>${c.threat_reason
+          ? `<div>${esc(c.threat_reason)}</div>
+             <div class="note" style="margin-top:5px">${esc(c.one_liner)}</div>`
+          : esc(c.one_liner)}</td>
+        <td class="note nowrap">${items.length?fmtDate(when(items[0])):'—'}</td></tr>`;
+    }).join('')}</tbody>`;
+
+  // activity chart — stacked, 2 series, legend + direct totals + hover tooltip.
+  // Restricted to assessed tiers: watchlist companies are tracked for market
+  // signal only, and including them lets a peripheral vendor with a busy blog
+  // top the chart, which reads as a finding when it is a data artifact.
+  const SHOWN=['core','adjacent'];
+  const counts=C.filter(c=>SHOWN.includes(c.tier)).map(c=>{
+      const mine=FEED.filter(f=>f.competitor_id===c.id);
+      const news=mine.filter(f=>f.kind==='news').length;
+      const post=mine.length-news;
+      return {name:c.name,threat:c.threat,news,post,n:mine.length};
+    }).filter(c=>c.n>0).sort((a,b)=>b.n-a.n);
+  const max=Math.max(...counts.map(c=>c.n),1);
+  const seg=(cls,v,label,c)=> v ? `<div class="seg ${cls}"
+      style="width:${(v/max*100).toFixed(1)}%"
+      data-tip="${esc(c.name)} — ${v} ${label}"></div>` : '';
+  $('#legend').innerHTML =
+    `<span><i style="background:var(--s-news)"></i>Earned press coverage</span>
+     <span><i style="background:var(--s-post)"></i>Self-published</span>`;
+  $('#chart').innerHTML = counts.map(c=>`
+    <div class="cname" title="${esc(c.name)}">${esc(c.name)}</div>
+    <div class="track">${seg('s-news',c.news,'press item'+(c.news===1?'':'s'),c)}${
+      seg('s-post',c.post,'own post'+(c.post===1?'':'s'),c)}</div>
+    <div class="val">${c.n}</div>`).join('') ||
+    '<div class="empty" style="grid-column:1/-1">No activity collected yet.</div>';
+  const excluded=C.filter(c=>!SHOWN.includes(c.tier)).length;
+  const quiet=C.filter(c=>SHOWN.includes(c.tier)&&!FEED.some(f=>f.competitor_id===c.id));
+  $('#chart-note').innerHTML =
+    `Excludes ${excluded} watchlist companies not yet assessed. ` +
+    (quiet.length ? `No activity detected for ${quiet.map(c=>esc(c.name)).join(', ')} — ` +
+      `absence of coverage, not absence of activity.` : '') +
+    ` Full item-level detail is in the Competitor activity tab.`;
+
+  $('#positioning').innerHTML = m.positioning.map(p=>`
+    <p style="margin:0 0 14px"><b>${esc(p.point)}</b><br>
+    <span style="color:var(--text-2)">${esc(p.detail)}</span></p>`).join('');
+}
+
+/* tooltip for chart bars */
+(function(){
+  const tip=$('#tip');
+  document.addEventListener('mouseover',e=>{
+    const t=e.target.closest('[data-tip]');
+    if(!t) return;
+    tip.textContent=t.dataset.tip; tip.classList.add('on');
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!tip.classList.contains('on')) return;
+    const pad=14, w=tip.offsetWidth, h=tip.offsetHeight;
+    tip.style.left=Math.min(e.clientX+pad, innerWidth-w-8)+'px';
+    tip.style.top=Math.max(8, e.clientY-h-pad)+'px';
+  });
+  document.addEventListener('mouseout',e=>{
+    if(e.target.closest('[data-tip]')) tip.classList.remove('on');
+  });
+})();
+
+/* ---------- matrix ---------- */
+const CAP_WORDS={yes:'Has it', no:'Does not', partial:'Partly',
+                 unknown:'Not published'};
+/* A cell answers "what do they have". Where the claim came from is provenance, and a
+   document name repeated 200 times across the table buried the answer. Any explanation
+   inside the source is kept and shown; the citation itself moves to hover and to the
+   Sources list on each brief. */
+const PROVENANCE=/^(internal|wya-competitive|competition slides|v3\b)/i;
+function capExplains(cap){
+  if(cap && cap.what) return cap.what;      // written statement always wins
+  const raw=String((cap&&cap.source)||'').trim();
+  if(!raw || PROVENANCE.test(raw)) return '';
+  // an internal document must not be named mid-sentence either
+  if(/internal (brief|deck|source|competitive|competition)/i.test(raw)) return '';
+  const body=raw.split(/\s(?:—|·)\s/)[0];
+  const firstSentence=body.split(/(?<=\.)\s+/)[0];
+  return firstSentence.length > 12 ? firstSentence : '';
+}
+function capCell(cap){
+  if(!cap || cap.value===undefined)
+    return `<div class="cell"><span class="v v-unknown">Not published</span></div>`;
+  const v=String(cap.value);
+  const why=capExplains(cap);
+  const prov=String(cap.source||'').trim();
+  return `<div class="cell"${prov?` title="${esc(prov)}"`:''}>
+    <span class="v v-${v.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}">${
+      esc(CAP_WORDS[v]||v)}</span>
+    ${why?`<span class="note">${linkify(why)}</span>`:''}
+    ${cap.note?`<span class="note">${esc(cap.note)}</span>`:''}
+    ${prov?`<span class="note prov">${esc(cap.confidence||'')}${
+      cap.confidence?' · ':''}source on hover</span>`:''}</div>`;
+}
+/* Life360 and Google Maps generate 356 of 2,069 items — stock filings, phone reviews,
+   Barbie coverage — and none of it bears on a venue budget. They stay tracked, because
+   they shape what a buyer thinks location costs, but they do not get to crowd out the
+   ten companies chasing the same money. Everything remains in the Activity archive. */
+function competes(f){
+  if(f.entity_type!=='competitor') return true;      // clients and market always count
+  const c=DATA.competitors.find(x=>x.id===f.competitor_id);
+  return !c || c.threat==='high' || c.threat==='medium';
+}
+/* A Google News URL resolves to a 593KB JavaScript shell with the publisher link
+   stripped out — verified 2026-08-13, three redirects, never leaves google.com. So
+   these items are a title and nothing more, and the page says so rather than implying
+   the article was read. */
+const isHeadlineOnly = f => /news\.google\.com/.test(f.url||'');
+let MATRIX_ALL=false;
+function renderMatrix(){
+  const ax=DATA.matrix_axes;
+  const order=TIERS.map(t=>t[0]);
+  /* Default view is the companies chasing the same budget. Every one of their cells
+     is researched and sourced, so the table a reader sees first has no gaps. The
+     other 23 are reachable but not shown by default — including them made a complete
+     assessment look unfinished. */
+  const competes=c=>c.threat==='high'||c.threat==='medium';
+  const all=[...DATA.competitors].sort((a,b)=>
+    order.indexOf(a.tier)-order.indexOf(b.tier) ||
+    THREATS.indexOf(a.threat)-THREATS.indexOf(b.threat));
+  const rows=MATRIX_ALL?all:all.filter(competes);
+  const hidden=all.length-all.filter(competes).length;
+  $('#matrix').innerHTML =
+    `<thead><tr><th>Company</th><th>Threat</th>${
+      ax.map(a=>`<th>${esc(a.label)}</th>`).join('')}</tr></thead><tbody>
+    <tr class="wya-row"><td>${esc(DATA.wya.name)}</td><td>—</td>${
+      ax.map(a=>`<td>${capCell(DATA.wya.capabilities[a.id])}</td>`).join('')}</tr>
+    ${rows.map(c=>`<tr class="${c.threat==='none'?'dim':''}">
+      <td><b>${esc(c.name)}</b>${c.status!=='active'?
+          `<span class="pill p-${esc(c.status)}">${esc(c.status)}</span>`:''}
+        <div class="note">${esc(c.one_liner)}</div></td>
+      <td><span class="t t-${esc(c.threat)}">${esc(c.threat)}</span></td>
+      ${ax.map(a=>`<td>${capCell(c.capabilities[a.id])}</td>`).join('')}
+    </tr>`).join('')}</tbody>`;
+
+  $('#matrix-toggle').innerHTML = MATRIX_ALL
+    ? `Showing all ${all.length} tracked companies, including ${hidden} assessed as
+       low threat or not competing. <button type="button" id="mt-btn">Show only the
+       ${all.length-hidden} that compete</button>`
+    : `Showing the ${rows.length} companies chasing the same budget line. Every cell
+       below is researched and sourced — no gaps. <button type="button" id="mt-btn">Also
+       show the ${hidden} assessed as low threat or not competing</button>`;
+  $('#mt-btn').onclick=()=>{ MATRIX_ALL=!MATRIX_ALL; renderMatrix(); };
+
+  const ex=DATA.meta.excluded||[];
+  const exHtml = ex.length ? `<h3 style="margin-top:22px">Assessed and excluded</h3>
+    <p class="note" style="margin:0 0 10px">Companies looked at and deliberately left
+      out, recorded so nobody re-raises them as a gap.</p>
+    <ul class="pts">${ex.map(e=>`<li><b>${esc(e.name)}</b> — ${esc(e.reason)}
+      ${badge('certain')}<span class="note"> ${esc(e.source||'')}</span></li>`).join('')}
+    </ul>` : '';
+
+  // Pricing: only researched for the companies that compete, same reasoning as the
+  // matrix default view. "Not checked" and "checked, nothing published" are kept
+  // visually distinct — the first is a gap in our work, the second is a real finding.
+  // Status is its own coloured pill rather than buried in a sentence, and the table
+  // cell carries a short headline figure only — the full breakdown, where there is
+  // one, lives in the discussion card below so the table stays scannable.
+  const PSTAT={published:['t-ok','PUBLISHED'],not_published:['t-none','NOT PUBLISHED'],
+               'n/a':['t-low','N/A']};
+  const priced=[...all].filter(c=>c.pricing).sort((a,b)=>{
+    const rank={published:0,not_published:1,'n/a':2};
+    return (rank[a.pricing.status]??1)-(rank[b.pricing.status]??1);
+  });
+  $('#pricing-table').innerHTML = priced.length ? `<thead><tr>
+      <th>Company</th><th>Status</th><th>Rate</th><th>Model</th><th>Checked</th>
+    </tr></thead><tbody>${priced.map(c=>{
+      const [cls,label]=PSTAT[c.pricing.status]||PSTAT.not_published;
+      return `<tr>
+      <td><b>${esc(c.name)}</b></td>
+      <td><span class="t ${cls}">${label}</span></td>
+      <td>${esc(c.pricing.headline||c.pricing.value)}</td>
+      <td class="note">${esc(c.pricing.model||'')}</td>
+      <td class="note nowrap">${esc(c.pricing.checked||'')}</td>
+    </tr>`;}).join('')}</tbody>` : '';
+  $('#pricing-sources').innerHTML = priced.map(c=>
+    `<li><b>${esc(c.name)}.</b> ${linkify(c.pricing.source||'')}</li>`).join('');
+  const uncheckedCore=all.filter(c=>competes(c)&&!c.pricing).map(c=>c.name);
+  $('#pricing-note').innerHTML = uncheckedCore.length
+    ? `Not yet checked: ${uncheckedCore.map(esc).join(', ')}.`
+    : `Every company chasing the same budget has been checked at least once.`;
+  $('#pricing-discussion').innerHTML = priced.map(c=>{
+    const [cls,label]=PSTAT[c.pricing.status]||PSTAT.not_published;
+    return `<div class="card">
+      <div class="mvh">
+        <b>${esc(c.name)}</b>
+        <span class="t ${cls}">${label}</span>
+        <span class="t t-${esc(c.threat)}" style="margin-left:auto">${esc(c.threat)} threat</span>
+      </div>
+      <p style="margin:9px 0 0;font-size:14.5px">${esc(c.pricing.value)}</p>
+      ${/* The price history lived only on the front-page scoreboard, which shows
+            the companies that moved this week. So the one page a reader opens to
+            answer "what do they charge, and has it moved" showed today's figure
+            and nothing else - VenuIQ's four recorded price changes were in the
+            data and on no screen. Same renderer, so the two can never disagree. */
+        priceLine(c).replace(/^[\s\S]*?(?=<div class="phist"|$)/, '')}
+      ${c.pricing.note?`<div class="why" style="margin-top:9px">
+        <b>What this means for us.</b> ${esc(c.pricing.note)}</div>`:''}
+    </div>`;}).join('') || `<div class="card"><p class="note" style="margin:0">
+      No competitor has been checked for pricing yet.</p></div>`;
+
+  const dc=DATA.wya.deck_claim, fl=DATA.wya.rule_flags||[];
+  $('#claim-check').innerHTML = `<h3>Claim verification</h3>
+    <p style="margin:0 0 6px"><i>&ldquo;${esc(dc.text)}&rdquo;</i> ${badge(dc.confidence)}</p>
+    <p class="note" style="margin:0 0 16px">${esc(dc.note)}</p>
+    ${fl.map(f=>`<p style="margin:0 0 6px"><b>${esc(f.where)}</b> ${badge('unverified')}<br>
+      <i style="color:var(--text-2)">&ldquo;${esc(f.claim)}&rdquo;</i></p>
+      <p class="note" style="margin:0 0 14px">${esc(f.issue)}</p>`).join('')}
+    ${exHtml}
+    <p class="note" style="border-top:1px solid var(--line);padding-top:12px;margin:14px 0 0">
+      ${esc(DATA.meta.wya_side_provenance)}
+      ${DATA.meta.authority?`<br><br><b>Authority.</b> ${esc(DATA.meta.authority)}`:''}</p>`;
+}
+
+/* ---------- briefs ---------- */
+function renderPicker(sel){
+  $('#picker').innerHTML = TIERS.map(([t,label])=>{
+    const list=DATA.competitors.filter(c=>c.tier===t)
+      .sort((a,b)=>THREATS.indexOf(a.threat)-THREATS.indexOf(b.threat));
+    if(!list.length) return '';
+    return `<div class="tg">${label}</div>` + list.map(c=>
+      `<button role="tab" data-id="${esc(c.id)}" aria-current="${c.id===sel}">
+        <span>${esc(c.name)}</span><span class="dot d-${esc(c.threat)}"
+        title="threat: ${esc(c.threat)}"></span></button>`).join('');
+  }).join('');
+}
+function pts(items,empty){
+  if(!items||!items.length) return `<p class="note">${empty}</p>`;
+  return '<ul class="pts">'+items.map(i=>`<li>${esc(i.text)} ${src(i)}
+    ${i.note?`<br><span class="note">${esc(i.note)}</span>`:''}</li>`).join('')+'</ul>';
+}
+/* The short version. A live question about a competitor could not be answered
+   because the answer was spread across seven sections — this is the 30-second layer
+   that sits above the detail, built from the same sourced fields so it cannot drift
+   from the brief underneath it. */
+function firstText(list){
+  const x=(list||[])[0]; if(!x) return null;
+  return typeof x==='string' ? {text:x} : x;
+}
+/* Comparisons were one run-on sentence with both sides bolded the same, so a reader
+   could not tell which half was WYA. Two labelled sides, the winning side marked, and
+   a plain verdict — no one should have to parse a sentence to learn who is ahead. */
+function cmpBlock(c){
+  const all=(c.vs_wya||[]);
+  if(!all.length) return '';
+  const us=all.filter(d=>d.edge==='WYA');
+  const them=all.filter(d=>d.edge&&d.edge!=='WYA'&&d.edge!=='Draw');
+  const draw=all.filter(d=>d.edge==='Draw');
+  const pick=[...us.slice(0,2),...them.slice(0,1),...draw.slice(0,1)];
+  if(!pick.length) return '';
+  const side=(who,txt,win)=>`<div class="cmpside${win?' win':''}">
+    <div class="who">${win?'✓ ':''}${esc(who)}</div>
+    <div class="txt">${esc(txt||'—')}</div></div>`;
+  return `<div class="cmpwrap">
+    <div class="k" style="font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+      color:var(--muted);font-weight:800">How we compare, point by point</div>
+    ${pick.map(d=>{
+      const usWin=d.edge==='WYA', themWin=!!d.edge&&d.edge!=='WYA'&&d.edge!=='Draw';
+      const verdict=usWin?['us','WYA ahead']
+        :themWin?['them',`${d.edge} ahead`]:['','Level'];
+      return `<div class="cmpdim">${esc(d.dimension)}
+        <span class="cmpverdict ${verdict[0]}">${esc(verdict[1])}</span></div>
+        <div class="cmp">
+          ${side('WYA', d.wya, usWin)}
+          ${side(c.name, d.them, themWin)}
+        </div>
+        ${d.note?`<div class="note" style="margin-top:6px">${esc(d.note)}</div>`:''}`;
+    }).join('')}
+    <div class="note" style="margin-top:10px">Full comparison for every dimension is in
+      the detail below.</div>
+  </div>`;
+}
+function shortVersion(c){
+  const win=(c.vs_wya||[]).find(d=>d.edge==='WYA');
+  const lose=(c.vs_wya||[]).find(d=>d.edge&&d.edge!=='WYA'&&d.edge!=='Draw');
+  const st=firstText(c.strengths), wk=firstText(c.weaknesses),
+        kb=firstText(c.know_before_you_pitch);
+  const row=(label,body,note)=>body?`<div class="sumrow">
+    <div class="k">${esc(label)}</div>
+    <div class="v">${esc(body)}</div>
+    ${note?`<div class="note" style="margin-top:3px">${esc(note)}</div>`:''}</div>`:'';
+  // one_liner is printed in the header card immediately above; repeating it here
+  // read as carelessness rather than emphasis
+  const recent=FEED.filter(x=>x.competitor_id===c.id&&when(x))
+    .sort((a,b)=>when(b).localeCompare(when(a)));
+  const latest=recent[0];
+  const rows =
+    (c.threat_reason?row(`Why we rate them ${c.threat} threat`, c.threat_reason):'') +
+    (latest?row('What changed most recently',
+      `${fmtDate(when(latest))} — ${latest.title}`,
+      recent.length>1?`${recent.length} recorded movements in total, listed below.`
+        :'One recorded movement.'):'') +
+    row('Where they are strong', st&&st.text, st&&st.source) +
+    row('Where they are weak', wk&&wk.text, wk&&wk.source) +
+    cmpBlock(c) +
+    (kb?row('What we are watching', kb.text, kb.source):'');
+  return `<div class="sumpanel">
+    <div class="sumhead">
+      <span class="sumbadge">Summary</span>
+      <h3>${esc(c.name)} in 30 seconds</h3>
+      <span class="note" style="margin-left:auto">Drawn from the detail below — the two
+        cannot disagree</span>
+    </div>
+    ${rows}
+    ${c.bottom_line?`<div class="act" style="margin-top:18px"><b>Bottom line.</b> ${
+      esc(String(c.bottom_line).split(/\.\s+/)[0])}.</div>`:''}
+  </div>`;
+}
+/* Every recorded movement for one company, newest first, grouped by month. The global
+   feed answers "what happened this week"; this answers "what has this company been
+   doing", which is the question a founder actually asks. */
+function timelineHTML(c){
+  const items=FEED.filter(f=>f.competitor_id===c.id)
+    .sort((a,b)=>(when(b)||'').localeCompare(when(a)||''));
+  if(!items.length) return `<div class="card"><h3>Activity record</h3>
+    <p class="note" style="margin:0">Nothing recorded in the monitoring window. Absence
+      of coverage, not absence of activity.</p></div>`;
+  const months={};
+  for(const f of items){
+    const w=when(f)||'';
+    const k=w?w.slice(0,7):'undated';
+    (months[k] ||= []).push(f);
+  }
+  const label=k=>k==='undated'?'Undated'
+    :new Date(k+'-01').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  const diff=f=>{
+    const a=(f.added||[]), r=(f.removed||[]), nl=(f.now_lines||[]);
+    if(!a.length&&!r.length&&nl.length) return `<div class="note" style="margin-top:5px">
+      <b>The page now says:</b> ${nl.slice(0,3).map(esc).join(' · ')}
+      ${f.had_baseline===false?`<div style="margin-top:3px">First capture of this page, so
+        there is nothing to compare against yet — the next change shows a line-by-line
+        difference.</div>`:''}</div>`;
+    if(!a.length&&!r.length) return '';
+    return `<div class="note" style="margin-top:5px">
+      ${a.length?`<div><b>Added:</b> ${a.map(esc).join(' · ')}</div>`:''}
+      ${r.length?`<div><b>Removed:</b> ${r.map(esc).join(' · ')}</div>`:''}
+      ${(f.added_total||0)+(f.removed_total||0)>a.length+r.length
+        ? `<div>…${(f.added_total||0)+(f.removed_total||0)-a.length-r.length} further
+           changed lines not shown.</div>`:''}</div>`;
+  };
+  return `<div class="card">
+    <h3 style="margin:0 0 2px">Activity record</h3>
+    <p class="note" style="margin:0 0 4px">Everything recorded about ${esc(c.name)} in the
+      monitoring window — ${items.length} item${items.length===1?'':'s'}, newest first.
+      Page changes show what changed where the text was captured.</p>
+    ${Object.keys(months).sort().reverse().map(k=>`
+      <div style="margin-top:18px">
+        <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+          color:var(--muted);font-weight:800">${esc(label(k))}
+          <span style="font-weight:400"> · ${months[k].length}</span></div>
+        ${months[k].map(f=>`<div style="margin-top:9px;padding-left:12px;
+          border-left:2px solid var(--line)">
+          <span class="k k-${esc(f.kind||'news')}">${esc((f.kind||'news').replace('_',' '))}</span>
+          <span class="when" style="margin-left:6px">${fmtDate(when(f))||'undated'}</span>
+          <div style="margin-top:3px">${f.url?`<a href="${esc(f.url)}" target="_blank"
+            rel="noopener">${esc(f.title)}</a>`:esc(f.title)}${
+            f.publisher?`<span class="note"> · ${esc(f.publisher)}</span>`:''}</div>
+          ${diff(f)}
+        </div>`).join('')}
+      </div>`).join('')}
+  </div>`;
+}
+function renderDetail(id){
+  const c=DATA.competitors.find(x=>x.id===id); if(!c) return;
+  renderPicker(id);
+  const snap=(c.snapshot||[]).map(s=>`<dt>${esc(s.label)}</dt><dd>${esc(s.value)}
+    ${src(s)}${s.note?`<br><span class="note">${esc(s.note)}</span>`:''}</dd>`).join('');
+  const prods=(c.products||[]).map(p=>`<div class="prod">
+      <b>${esc(p.name)}</b><span class="pill p-${esc(p.status)}">${esc(p.status)}</span>
+      ${badge(p.confidence)}
+      <div class="note" style="margin-top:6px"><b>Mechanism:</b> ${esc(p.mechanism)}</div>
+      <div class="note"><b>Use case:</b> ${esc(p.use_case)}</div>
+      ${p.note?`<div class="note" style="color:var(--med);margin-top:4px">${esc(p.note)}</div>`:''}
+    </div>`).join('') || '<p class="note">Not yet assessed.</p>';
+  const vs=(c.vs_wya||[]).length?`<div class="card tight wrap"><table>
+      <thead><tr><th>Dimension</th><th>WYA</th><th>${esc(c.name)}</th><th>Advantage</th></tr></thead>
+      <tbody>${c.vs_wya.map(d=>`<tr>
+        <td><b>${esc(d.dimension)}</b><br>${src(d)}</td>
+        <td>${esc(d.wya)}</td><td>${esc(d.them)}</td>
+        <td class="${d.edge==='WYA'?'edge-WYA':d.edge==='Draw'?'edge-draw':'edge-them'}">${esc(d.edge)}
+          ${d.note?`<div class="note" style="font-weight:400;margin-top:4px">${esc(d.note)}</div>`:''}
+        </td></tr>`).join('')}</tbody></table></div>`:'';
+  const kb=(c.know_before_you_pitch||[]).length?`<div class="card">
+      <h3>What to be aware of</h3>${pts(c.know_before_you_pitch,'')}</div>`:'';
+
+  $('#detail').innerHTML = `
+    <div class="card">
+      <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap">
+        <h2 style="margin:0">${esc(c.name)}</h2>
+        <span class="t t-${esc(c.threat)}">${esc(c.threat)} threat</span>
+        ${c.status!=='active'?`<span class="pill p-${esc(c.status)}">${esc(c.status)}</span>`:''}
+      </div>
+      <p class="lede" style="margin:10px 0 0">${esc(c.one_liner)}</p>
+      ${c.status_detail?`<div class="act" style="margin-top:12px">
+        <b>Current status:</b> ${esc(c.status_detail)}</div>`:''}
+      ${c.discovered_by?`<p class="note" style="margin:12px 0 0">
+        <b>Identification:</b> ${esc(c.discovered_by)}</p>`:''}
+      <p style="margin:14px 0 0"><a href="${esc(c.website)}" target="_blank"
+        rel="noopener">${esc(c.website)}</a></p>
+    </div>
+    ${shortVersion(c)}
+    <div class="detailfence"><span>The detail — every claim sourced</span></div>
+    <div class="card"><h3>What they sell</h3>${prods}</div>
+    ${vs}
+    <div class="cols">
+      <div class="card"><h3>Strengths</h3>${pts(c.strengths,'Not yet assessed.')}</div>
+      <div class="card"><h3>Weaknesses</h3>${pts(c.weaknesses,'Not yet assessed.')}</div>
+    </div>
+    ${timelineHTML(c)}
+    ${kb}
+    <div class="card"><h3>Assessment</h3>
+      <p style="margin:0;color:var(--text-2)">${esc(c.bottom_line)}</p></div>
+    ${snap?`<div class="card"><h3>Company snapshot</h3><dl class="snap">${snap}</dl></div>`:''}
+    <div class="card"><h3>Sources</h3><ul class="pts">${
+      (c.sources||[]).map(s=>`<li>${linkify(s)}</li>`).join('')||
+      '<li class="note">None recorded.</li>'}</ul></div>`;
+}
+
+/* ---------- activity ---------- */
+/* Default is 7 days so this tab agrees with the weekly update: newer items in,
+   older items gone. Wider windows stay available for looking something up. */
+const RANGES=[['7','This week'],['30','Last 30 days'],['90','Last 90 days'],
+              ['365','Last 12 months'],['','Everything held']];
+const RANGE_DEFAULT=0;
+function renderFeed(){
+  const days=$('#f-range').value, comp=$('#f-comp').value,
+        kind=$('#f-kind').value, q=$('#f-q').value.trim().toLowerCase();
+  const min = days ? Date.now()-Number(days)*864e5 : -Infinity;
+  const rows=FEED.filter(f=>{
+    const t=when(f)?new Date(when(f)).getTime():0;
+    return (!days || t>=min) && (!comp||f.competitor_id===comp) &&
+           (!kind||f.kind===kind) && (!q||f.title.toLowerCase().includes(q));
+  });
+  $('#fcount').textContent = `${rows.length} of ${FEED.length} items`;
+  $('#feed').innerHTML = rows.length ? rows.map(f=>`<div class="item">
+      <span class="k k-${esc(f.kind)}">${esc(f.kind.replace('_',' '))}</span>
+      <span class="when">${fmtDate(when(f))||'undated'}</span>
+      <span class="who">${esc(f.competitor)}</span>
+      <span><a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.title)}</a>
+        ${f.prev_hash?`<div class="note">content hash ${esc(f.prev_hash)} → ${esc(f.hash)}</div>`:''}
+      </span></div>`).join('')
+    : `<div class="empty">No items match these filters.${
+        FEED.length?'':' Run <code>python3 collect.py</code> to populate.'}</div>`;
+}
+function setupFeed(){
+  $('#f-range').innerHTML = RANGES.map(([v,l],i)=>
+    `<option value="${v}"${i===RANGE_DEFAULT?' selected':''}>${l}</option>`).join('');
+  const seen=new Map(); FEED.forEach(f=>seen.set(f.competitor_id,f.competitor));
+  $('#f-comp').innerHTML='<option value="">All competitors</option>'+
+    [...seen].sort((a,b)=>a[1].localeCompare(b[1]))
+      .map(([id,n])=>`<option value="${esc(id)}">${esc(n)}</option>`).join('');
+  $('#f-kind').innerHTML='<option value="">All item types</option>'+
+    [...new Set(FEED.map(f=>f.kind))].sort()
+      .map(k=>`<option value="${esc(k)}">${esc(k.replace('_',' '))}</option>`).join('');
+  ['#f-range','#f-comp','#f-kind','#f-q'].forEach(s=>$(s).oninput=renderFeed);
+  renderFeed();
+}
+
+/* ---------- clients & sector ---------- */
+function entityCard(e, kindLabel){
+  const items=FEED.filter(f=>f.competitor_id===e.id)
+    .sort((a,b)=>(when(b)||'').localeCompare(when(a)||''));
+  const wk=Date.now()-7*864e5;
+  const fresh=items.filter(f=>when(f)&&new Date(when(f)).getTime()>=wk).length;
+  const eng=e.engagement ? (CLIENTS.engagement_key||{})[e.engagement] : '';
+  return `<div class="card">
+    <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+      <h3 style="margin:0">${e.website?`<a href="${esc(e.website)}" target="_blank"
+        rel="noopener">${esc(e.name)}</a>`:esc(e.name)}</h3>
+      <span class="t t-${esc(e.priority||'low')}">${esc(e.priority||'low')} priority</span>
+      ${e.engagement?`<span class="pill p-active" title="${esc(eng)}">${
+        esc(e.engagement.replace(/_/g,' '))}</span>`:''}
+      <span class="owner" style="margin-left:auto">${items.length} item${
+        items.length===1?'':'s'}${fresh?` · ${fresh} this week`:''}</span>
+    </div>
+    <p style="margin:11px 0 0;color:var(--text-2);font-size:14px">
+      <b>Why it matters.</b> ${esc(e.why_it_matters||'')}</p>
+    ${items.length?`<div style="margin:14px -20px -18px">${items.slice(0,6).map(f=>`
+      <div class="item" style="grid-template-columns:96px 1fr">
+        <span class="when">${fmtDate(when(f))||'undated'}</span>
+        <span><a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.title)}</a>
+        ${f.publisher?`<span class="note"> · ${esc(f.publisher)}</span>`:''}</span>
+      </div>`).join('')}${items.length>6?`<div class="item" style="grid-template-columns:1fr">
+        <span class="note">…and ${items.length-6} more in the Competitor activity tab</span></div>`:''}
+      </div>`
+    :`<p class="note" style="margin:12px 0 0">No public news detected in the
+       monitoring window. Absence of coverage, not absence of activity.</p>`}
+  </div>`;
+}
+function renderClients(){
+  if(!CLIENTS){
+    $('#clients').innerHTML=`<div class="card"><p class="note">
+      clients.json not found. Client and sector monitoring is configured in that
+      file — see the README.</p></div>`;
+    $('#space').innerHTML=$('#clients').innerHTML;
+    $('#accounts').innerHTML=$('#clients').innerHTML; return;
+  }
+  const byPri=(a,b)=>THREATS.indexOf(a.priority||'low')-THREATS.indexOf(b.priority||'low');
+  const fnd=(CLIENTS.findings||[]).sort(
+    (a,b)=>(SEV[a.severity]??9)-(SEV[b.severity]??9));
+  const fhtml = fnd.length ? `<h3 style="margin:0 0 4px">What the monitoring found</h3>
+    <p class="lede">Items from the client and sector feeds that change what to do
+      next, rather than items simply worth knowing.</p>` +
+    fnd.map(q=>`<div class="finding ${esc(q.severity)}">
+      <div class="top">
+        <span class="b b-${q.severity==='info'?'unknown':'unverified'}">${esc(q.severity)}</span>
+        <h3>${esc(q.title)}</h3>
+        ${q.owner?`<span class="owner">${esc(q.owner)}</span>`:''}
+      </div>
+      <p>${esc(q.detail)}</p>
+      <div class="act"><b>What this means.</b> ${esc(q.resolution)}</div>
+      ${q.sources?`<p class="note" style="margin:9px 0 0">Sources: ${
+        q.sources.map(linkify).join(' · ')}</p>`:''}
+    </div>`).join('') +
+    '' : '';
+  $('#clients').innerHTML = fhtml;
+  $('#accounts').innerHTML = [...(CLIENTS.clients||[])].sort(byPri)
+    .map(c=>entityCard(c,'client')).join('');
+  $('#space').innerHTML=[...(CLIENTS.sector_topics||[])].sort(byPri)
+    .map(t=>entityCard(t,'sector')).join('');
+}
+
+/* ---------- verification ---------- */
+const SEV={priority:0,conflict:1,stale:2,blocker:3,strategic:4,gap:5,info:6};
+function findingHTML(q){
+  return `<div class="finding ${esc(q.severity)}">
+    <div class="top">
+      <span class="b b-${q.severity==='info'?'unknown':'unverified'}">${esc(q.severity)}</span>
+      <h3>${esc(q.title)}</h3>
+      ${q.owner?`<span class="owner">${esc(q.owner)}</span>`:''}
+    </div>
+    <p>${esc(q.detail)}</p>
+    <div class="act"><b>What this means.</b> ${esc(q.resolution)}</div></div>`;
+}
+function renderAllFindings(){
+  const bySev=(a,b)=>(SEV[a.severity]??9)-(SEV[b.severity]??9);
+  const vAll=DATA.open_questions.filter(q=>q.class==='verification').sort(bySev);
+  const v=vAll.filter(q=>!q.resolved), vDone=vAll.filter(q=>q.resolved);
+  const m=DATA.open_questions.filter(q=>q.class==='market').sort(bySev);
+  const doneHTML = vDone.length ? `<details class="card" style="margin-top:26px">
+    <summary style="cursor:pointer;font-weight:700;font-size:15.5px">Closed — ${vDone.length}
+      item${vDone.length===1?'':'s'} settled <span class="note" style="font-weight:400">
+      — kept so the correction is auditable, not deleted</span></summary>
+    ${vDone.map(q=>`<div style="margin-top:16px;padding-left:12px;
+      border-left:2px solid var(--ok,#2f9e6b)">
+      <b>${esc(q.title)}</b>
+      <div style="margin-top:5px;color:var(--text-2);font-size:14px">${esc(q.resolution)}</div>
+    </div>`).join('')}</details>` : '';
+  $('#allfindings').innerHTML = (v.length?v.map(findingHTML).join('')
+    :`<div class="card"><p class="note" style="margin:0">Nothing is awaiting a data
+      correction. Remaining items below are open market questions, not defects.</p></div>`) +
+    doneHTML +
+    `<h3 style="margin:26px 0 12px">Strategic questions</h3>
+     <p class="lede">Open market questions rather than data corrections.</p>` +
+    m.map(findingHTML).join('');
+}
+
+/* ---------- boot ---------- */
+/* A held finding failed the claim check in analyse.py - something in it is not
+   supported by its source - so it is kept on file with the reason and shown
+   nowhere. Filtered once, here, so no render path can forget to. */
+const dropHeld = a => a && Array.isArray(a.reviewed)
+  ? {...a, reviewed: a.reviewed.filter(e => !e.held)} : a;
+async function main(){
+  // Single-file bundle: bundle.py injects window.__BUNDLED__ so the page works
+  // from file:// with no server and no fetch. Same code path otherwise.
+  const B = window.__BUNDLED__;
+  if(B){
+    DATA=B.competitors; CLIENTS=B.clients||null; ANALYSIS=dropHeld(B.analysis||null);
+    FEED=(B.changes||[]).sort((a,b)=>(when(b)||'').localeCompare(when(a)||''));
+    return boot(B);
+  }
+  try{
+    DATA = await (await fetch('competitors.json?_='+Date.now())).json();
+  }catch(e){
+    $('main').innerHTML=`<div class="err">
+      <b>Could not load competitors.json.</b><br>
+      This dashboard must be served over HTTP — browsers block <code>fetch()</code>
+      on <code>file://</code>, so opening the file directly will not work.<br><br>
+      <code>cd dashboard &amp;&amp; python3 -m http.server 8080</code><br>
+      then open <code>http://localhost:8080</code><br><br>
+      <span class="note">${esc(e.message)}</span></div>`;
+    $('#meta').textContent='load failed'; return;
+  }
+  try{
+    CLIENTS = await (await fetch('clients.json?_='+Date.now())).json();
+  }catch{ CLIENTS=null; }   // dashboard still works without client monitoring
+  try{
+    ANALYSIS = dropHeld(await (await fetch('analysis.json?_='+Date.now())).json());
+  }catch{ ANALYSIS=null; }  // absent means every line renders as unreviewed
+  /* Pricing observations are owned by the daily run, competitors.json by people.
+     Keeping them in separate files means the automation never commits to a
+     hand-edited file, so a person's edit and a scheduled run cannot collide.
+     They are merged here, at render time, and the merge is additive in exactly
+     the same way pricing.py's is: `observed` and `history` are what the scraper
+     read, never a replacement for what somebody wrote. */
+  try{
+    const pf = await (await fetch('pricing_findings.json?_='+Date.now())).json();
+    const scan=pf.scan||{}, hist=pf.history||{};
+    for(const c of DATA.competitors){
+      const sc=scan[c.id], h=hist[c.id];
+      if(!sc && !h) continue;
+      c.pricing = c.pricing || {};
+      // The date shown is the last time anyone actually looked, which is the
+      // daily scan whenever it is newer than the hand-written record.
+      if(sc && sc.seen && (!c.pricing.checked || sc.seen > c.pricing.checked))
+        c.pricing.checked = sc.seen;
+      if(sc && sc.no_page){ if(h && h.length) c.pricing.history=h; continue; }
+      if(sc && sc.ok){
+        const rated=(sc.figures||[]).filter(f=>f.unit);
+        c.pricing.observed={seen:sc.seen, via:sc.via, url:sc.url,
+          headline:sc.headline||'', quote_only:!!sc.quote_only,
+          figures:rated.map(f=>`${f.figure} ${f.unit}`.trim())};
+        const a=(c.pricing.headline||'').match(/\d[\d,]*/g),
+              b=(sc.headline||'').match(/\d[\d,]*/);
+        c.pricing.disagrees = !!(a&&b&&!a.includes(b[0]));  // a range like $995–1,300 agrees with $1,300
+      }else if(sc){
+        c.pricing.observed={seen:sc.seen, url:sc.url, unreachable:true,
+          http:sc.http, error:sc.error, figures:[]};
+      }
+      if(h && h.length) c.pricing.history=h;
+    }
+  }catch{ /* no findings file yet: the written record renders on its own */ }
+  try{
+    const txt=await (await fetch('changes.jsonl?_='+Date.now())).text();
+    FEED=txt.split('\n').filter(l=>l.trim()).map(l=>{try{return JSON.parse(l)}catch{return null}})
+      .filter(Boolean).sort((a,b)=>(when(b)||'').localeCompare(when(a)||''));
+  }catch{ FEED=[]; }
+
+  return boot(null);
+}
+
+/* Picks the single highest-priority written analysis from the latest run, so the
+   top of the page carries one real judgement instead of a raw count that only
+   duplicates the stat tiles below it — the count told a reader nothing they
+   couldn't already see, and pointed at a second copy of the same information. */
+/* Which single analysis leads the page.
+
+   Threat rank alone is the wrong sort, and it showed: a high-threat company
+   publishing a routine blog post outranked a $100m acquisition in the same
+   day's analysis, so the first thing a reader saw was an item whose own text
+   said "not a new signal". Two corrections:
+
+   - an entry that describes itself as a non-event is pushed to the bottom,
+     whoever it is about. The analysis already says so; the sort should listen.
+   - clients and sector topics carry their own priority, so they compete for
+     the lead on equal terms instead of being unranked and always last. */
+const NO_SIGNAL=/\b(not a new signal|no signal|no real movement|nothing about|not operational|routine|stale|previously-published|no new figures)\b/i;
+const HARD_EVENT=/\b(acquir|acquisition|merger|takeover|funding|raises|series [a-e]|ipo|price|pricing|rate card|appoints|hires|joins as|launch|unveils|partnership)\b/i;
+
+function topAnalysis(){
+  const all=((ANALYSIS||{}).reviewed||[]).filter(a=>a.text&&a.date);
+  if(!all.length) return null;
+  const latest=all.reduce((m,a)=>a.date>m?a.date:m,'');
+  const today=all.filter(a=>a.date===latest);
+  const rank={high:0,medium:1,low:2,none:3,'':4};
+  const priorityOf=id=>{
+    const c=(DATA.competitors||[]).find(x=>x.id===id);
+    if(c) return rank[c.threat]??4;
+    const own=CLIENTS&&[...(CLIENTS.clients||[]),...(CLIENTS.sector_topics||[])]
+      .find(x=>x.id===id);
+    return own?(rank[own.priority]??4):4;
+  };
+  const score=a=>{
+    let s=priorityOf(a.competitor_id);
+    if(NO_SIGNAL.test(a.text)) s+=10;          // it says it is not news; believe it
+    else if(HARD_EVENT.test(a.text)) s-=1;     // money, price and people move first
+    return s;
+  };
+  return today.slice().sort((a,b)=>score(a)-score(b))[0] || null;
+}
+
+function boot(B){
+  const wk=Date.now()-7*864e5;
+  const nWeek=FEED.filter(f=>when(f)&&new Date(when(f)).getTime()>=wk).length;
+  const top=topAnalysis();
+  if(top){
+    $('#digest-label').textContent = 'Most important this week';
+    $('#digest-sub').textContent = top.text.length>170?top.text.slice(0,167)+'…':top.text;
+    // The CTA used to be a plain #todays-heading anchor regardless of what topAnalysis()
+    // picked. That heading's own section explicitly excludes competitor entries — it
+    // shows a redirect note, not the item — so a competitor-led pick landed nowhere near
+    // itself. Route by kind instead: competitors go to where they actually render.
+    const isCompetitor = DATA.competitors.some(c=>c.id===top.competitor_id);
+    $('#digest-cta').onclick = e=>{
+      e.preventDefault();
+      goTab(isCompetitor?'activity':'overview',
+            isCompetitor?'#competitor-analysis':'#todays-heading');
+    };
+  } else {
+    $('#digest-label').textContent = 'This week';
+    $('#digest-sub').textContent = nWeek
+      ? `${nWeek} items in the last 7 days — no analysis written yet for the latest run`
+      : 'no items in the last 7 days — widen the window in the Competitor activity tab';
+  }
+
+  const dated=FEED.filter(f=>f.published).map(f=>f.published).sort();
+  $('#meta').textContent = `${DATA.competitors.length} companies · compiled ${
+    DATA.meta.compiled}${dated.length?` · activity to ${fmtDate(dated[dated.length-1])}`:''}`;
+  $('#cls').textContent = DATA.meta.classification || '';
+
+  buildNav(); renderOverview(); renderClients(); renderMatrix();
+  renderDetail(DATA.competitors[0].id);
+  $('#picker').onclick=e=>{
+    const b=e.target.closest('button[data-id]'); if(b) renderDetail(b.dataset.id);
+  };
+  setupFeed(); renderAllFindings();
+
+  if(B){
+    // offline snapshot: no live refresh. The top-of-page CTA is now a same-page
+    // anchor to #todays, so it needs no special handling here any more.
+    $('#refresh').hidden=true;
+    $('#meta').textContent += ` · offline snapshot`;
+  } else setupRefresh();
+
+  $('#footer').innerHTML = `<b>Method.</b> ${esc(DATA.meta.method)}<br><br>
+    <b>Standards applied.</b><br>${DATA.meta.hard_rules.map(r=>'· '+esc(r)).join('<br>')}
+    <br><br>${B?`<b>This is a dated snapshot.</b> It cannot update itself — ask for a
+    fresh copy, or open the live version.<br><br>`:''}${esc(DATA.meta.classification)}`;
+}
+main();
+</script>
+</body>
+</html>

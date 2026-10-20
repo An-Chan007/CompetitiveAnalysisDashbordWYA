@@ -2,7 +2,25 @@
 
 A daily market-intelligence system I built for a UK venue-technology startup. Every morning it collects what competitors, clients and the wider market did, has Claude write short findings, checks each finding against its source with two independent model passes, and delivers the result to a company-wide Slack channel and a password-protected web dashboard. An email digest is built in as a third channel.
 
-The source code is private company property, so this repository describes the system rather than shipping it.
+The code is published here with the company's permission. Company data, configuration (the competitor and client lists), internal documents and keys are not included, so the self-tests and the daily run need your own `dashboard/competitors.json`, `dashboard/clients.json` and API keys before they will run.
+
+## Repository layout
+
+```
+.github/workflows/daily.yml   the daily run: self-tests, collect, read, price, site read, analyse, commit, notify
+.github/workflows/claimcheck-regression.yml   manual regression suite for the claim check
+dashboard/collect.py   news, feeds, sitemaps, watched-page diffs, App Store releases
+dashboard/render.py    headless-browser rendering for JavaScript-heavy pages
+dashboard/pricing.py   live pricing pages, archive.org and Common Crawl price history
+dashboard/sitescan.py  daily full read of each competitor's site, builds the analysis packet
+dashboard/analyse.py   the analyst agent and the two-pass claim check
+dashboard/notify.py    Slack, failure and health alerts, email digest
+dashboard/digest.py, brief.py, bundle.py, serve.py   weekly digest, printable briefs, packaging, local server
+dashboard/index.html   the dashboard, one file
+middleware.js          dashboard login on Vercel
+```
+
+Each module runs its own offline checks with `python3 <module>.py --selftest`.
 
 ## What it does
 

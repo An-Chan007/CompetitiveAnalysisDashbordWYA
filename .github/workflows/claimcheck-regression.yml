@@ -1,0 +1,24 @@
+# Runs the claim check against real past findings - six errors exactly as they
+# were first written, eight findings verified correct by hand - with the real key.
+# Fails if any known error would get through, or any good finding would be held.
+name: Claim check regression
+on:
+  # Manual only: each run checks 14 long findings twice and costs real API
+  # credit. Run it after any change to the analyser.
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Known errors must be stopped, known-good findings must pass
+        working-directory: dashboard
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          pip install --quiet anthropic
+          python3 analyse.py --selftest
+          python3 analyse.py --recheck ../tests/claimcheck_cases.json

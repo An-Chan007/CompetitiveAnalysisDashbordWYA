@@ -1,0 +1,269 @@
+name: Daily market monitor
+
+# The collector takes 5-8 minutes across ~40 sources. That is why it runs here
+# and not on Vercel: Vercel functions cap at 60s on Hobby and 300s on Pro, so a
+# full run cannot complete there on any plan. GitHub Actions allows 6 hours.
+#
+# This job collects, regenerates the digest and briefs, and commits the results
+# back. Vercel is connected to the repo and redeploys on that commit, so the
+# hosted dashboard is static and never runs Python.
+
+on:
+  schedule:
+    # 01:03 UTC. NOT the time it is meant to arrive - the time it has to be asked
+    # for so that it does.
+    #
+    # It was 07:03 UTC, intended as 8:03am UK. Measured from the GitHub API on
+    # 2026-09-14 across ten consecutive scheduled runs: GitHub queued every one of
+    # them between 4h10m and 6h23m LATE (11:12-13:26 UTC), while the job itself
+    # took 13-17 minutes. The Slack update was landing at 12:30-2:30pm UK, and
+    # the head of sales asked for it in the morning. This is GitHub's documented
+    # behaviour for schedules on low-activity repos in contended slots, and 07:03
+    # is a contended slot: it is "8am Europe" for a great many crons.
+    #
+    # Asking at 01:03 UTC lands it, with the same delay, at 05:00-07:30 UTC, which
+    # is 6:00-8:30am UK. If the night-time delay turns out shorter, it arrives
+    # earlier still; either way it is there before the working day. Re-measure
+    # with the API if the delivery time drifts - the command is in HANDOVER §2.
+    #
+    # Offset minute (not :00) stays: the top of the hour is the single most
+    # contended slot, and it dropped two runs entirely on 20 and 25 August 2026.
+    #
+    # GitHub cron is UTC-fixed with no DST awareness. When the UK returns to GMT
+    # in late October, the same UTC time is one hour earlier on the wall clock.
+    - cron: "3 1 * * *"
+  workflow_dispatch:         # the dashboard's Refresh button triggers this
+
+permissions:
+  contents: write            # needed to commit the collected data back
+
+concurrency:
+  group: market-monitor      # never two collectors writing the same files
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    # Secrets are declared HERE, at job level, not on the individual steps.
+    # `if: env.FOO != ''` on a step is evaluated before that step's own `env:`
+    # block is applied, so a secret declared only on the step it guards reads as
+    # empty and the step silently never runs. That is the likeliest reason no
+    # scheduled Slack message has ever arrived. At job level the value is present
+    # when the conditional is evaluated. Absent secrets stay empty strings, so the
+    # skip-when-unset behaviour is unchanged.
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASS: ${{ secrets.SMTP_PASS }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      EMAIL_TO: ${{ secrets.EMAIL_TO }}
+      DASHBOARD_URL: ${{ vars.DASHBOARD_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # collect.py and everything it touches is still standard library only, and
+      # runs whether or not this step succeeds. crawl4ai is needed by render.py,
+      # which sitescan.py and pricing.py use to read JavaScript-built pages -
+      # three competitor sites, including a pricing page, are invisible without
+      # it. continue-on-error is deliberate: a broken browser must degrade the
+      # deep read, never stop the collection.
+      - name: Install the rendering browser
+        continue-on-error: true
+        run: |
+          pip install --quiet crawl4ai
+          python3 -m playwright install --with-deps chromium
+
+      - name: Verify config before collecting
+        working-directory: dashboard
+        run: |
+          python3 collect.py --selftest
+          python3 digest.py --selftest
+          python3 brief.py --selftest
+          python3 bundle.py --selftest
+          python3 notify.py --selftest
+          python3 render.py --selftest
+          python3 pricing.py --selftest
+          python3 sitescan.py --selftest
+
+      - name: Collect
+        working-directory: dashboard
+        run: python3 collect.py
+
+      # Fetch the article text for everything reachable. This stage is stdlib-only
+      # and needs NO credential, so it must not sit behind the API-key gate — it did,
+      # and content.jsonl went stale for three weeks as a result. Reading is what
+      # turns a headline into something analysable, whether a machine or a person
+      # does the analysing.
+      - name: Read the articles behind today's items
+        working-directory: dashboard
+        continue-on-error: true
+        run: python3 analyse.py --read --days=2
+
+      # Daily analysis. Writes a judgement for each movement that warrants one,
+      # merging with the hand-written entries rather than replacing them. Skipped
+      # when no credential exists — which is the state today, and is why the daily
+      # update is silent on any day nobody sat down and wrote analysis by hand.
+      # `analyse.py --analyse` imports the anthropic SDK. There was no pip install
+      # step, so this could never have succeeded - it raised SystemExit("the
+      # anthropic SDK is not installed") every time and continue-on-error swallowed
+      # it. analysis.json has 86 entries and 0 of them generated, which is the
+      # visible consequence. The SDK is installed only when the key exists, so the
+      # stdlib-only promise still holds for every run that does not analyse.
+      # Pricing runs BEFORE the site read, because sitescan.py folds the
+      # pricing findings into inbox.json when it builds the packet. Run the
+      # other way round and the packet carries yesterday's rates.
+      # Pricing, every day. Their published rate is what a buyer compares against,
+      # and it had been hand-checked once and never re-checked.
+      # Scan only. `--write` merges findings into competitors.json, and that file
+      # is hand-edited - a bot committing to it daily would collide with a
+      # person's edit sooner or later. The dashboard reads pricing_findings.json
+      # alongside competitors.json instead, so ownership stays clean: people own
+      # the judgement, the run owns the observations. Run `--write` by hand when
+      # a finding is worth promoting into the written record.
+      - name: Check competitor pricing
+        working-directory: dashboard
+        continue-on-error: true
+        run: python3 pricing.py --scan
+
+      # Read the competitors' own sites. Daily on weekdays for the pages that move;
+      # the full sweep on Sunday, when a wider crawl is cheap.
+      - name: Read the competitor websites
+        working-directory: dashboard
+        continue-on-error: true
+        run: |
+          if [ "$(date -u +%u)" = "7" ]; then
+            python3 sitescan.py --weekly
+          else
+            python3 sitescan.py --daily
+          fi
+
+      # Analysis LAST of the reading stages, because it now consumes what they
+      # produce. analyse.py reads inbox.json - the packet sitescan.py writes, with
+      # the pricing observations folded in - instead of content.jsonl.
+      #
+      # It used to run here BEFORE sitescan, so on any given day it analysed
+      # yesterday's packet. Worse, its old input was content.jsonl, which only ever
+      # holds what could be fetched directly: measured 2026-09-10 it had 65 entries
+      # whose newest publication date was 25 August, while collection ran daily.
+      # That is why 5-9 September collected data and wrote no judgement at all, and
+      # why the daily Slack was silent on days that were not quiet.
+      - name: Analyse what was collected
+        id: analyse
+        if: env.ANTHROPIC_API_KEY != ''
+        working-directory: dashboard
+        continue-on-error: true
+        run: |
+          pip install --quiet anthropic
+          python3 analyse.py --analyse --days=2
+
+      - name: Build digest and briefs
+        working-directory: dashboard
+        run: |
+          python3 digest.py --days=7
+          python3 brief.py --all
+
+      - name: Commit results
+        run: |
+          # Vercel refuses to deploy a commit whose author is not a member of the
+          # Vercel team, so the bot cannot author these commits. Using the project
+          # owner's GitHub noreply address keeps the deploy chain working; the
+          # commit message makes it obvious the run was automated.
+          git config user.name  "Aryan Anchan"
+          git config user.email "128887407+An-Chan007@users.noreply.github.com"
+          git add dashboard/changes.jsonl dashboard/analysis.json \
+                  dashboard/.collector_state.json \
+                  dashboard/digest.md dashboard/digest.html \
+                  dashboard/digest dashboard/briefs \
+                  dashboard/inbox.json \
+                  dashboard/pricing_findings.json dashboard/sitecorpus
+          if git diff --staged --quiet; then
+            echo "nothing new today"
+          else
+            git commit -m "data: market monitor $(date -u +%Y-%m-%d)"
+            git push
+          fi
+
+      # Posts only when the secret exists. Absent secret is the normal state before
+      # setup, so this must never fail the run — the collection already succeeded and
+      # its results are committed by the time we get here.
+      # Daily, every day: only the written, human-reviewed judgement from analysis.json —
+      # never a raw pattern-matched headline. Sends nothing on a day with no fresh
+      # analysis, deliberately — silence has to mean nothing was judged worth saying,
+      # not get muted from being sent every day regardless of content.
+      # No longer restricted to the schedule trigger. It was, and that meant a manual
+      # "Run workflow" click - exactly what you reach for when debugging "why didn't
+      # I get an update" - silently could never send Slack, which is what happened on
+      # 2026-08-27: a manual run collected and committed successfully but the event
+      # was workflow_dispatch, not schedule, so the send was skipped with no visible
+      # sign why. daily_analysed_payload() already returns nothing on a day with no
+      # analysis, so this still can't spam - the schedule check was redundant with
+      # that, not an additional safeguard.
+      - name: Send today's analysed update to Slack
+        if: env.SLACK_WEBHOOK_URL != ''
+        working-directory: dashboard
+        continue-on-error: true
+        run: python3 notify.py --daily
+
+      # Daily by email, every day: the same analysed-only content as the Slack message,
+      # styled as an email. Runs only once every SMTP secret below is set; absent
+      # secrets is the normal state before setup.
+      - name: Send today's analysed update by email
+        if: >-
+          env.SMTP_HOST != '' && env.SMTP_USER != '' &&
+          env.SMTP_PASS != '' && env.EMAIL_TO != ''
+        working-directory: dashboard
+        continue-on-error: true
+        run: python3 notify.py --email
+
+      # THE MISSING PIECE. This pipeline had no way to report its own death. It
+      # ran with failing scheduled runs while the channel stayed quiet, and a quiet
+      # channel is what a quiet market looks like too - so nothing distinguished
+      # "nothing happened" from "nothing ran". These two steps are the only reason
+      # the next outage gets noticed on the day it starts.
+      #
+      # `if: failure()` fires when any earlier step failed. It must come before the
+      # Summary step, which is always() and would otherwise mask the job status.
+      # continue-on-error keeps a failed analysis from stopping collection, which
+      # also kept it from tripping the failure alert below: no credit meant no
+      # message at all, indistinguishable from a quiet day.
+      - name: Say so in Slack if the analysis did not run
+        if: always() && steps.analyse.outcome == 'failure' && env.SLACK_WEBHOOK_URL != ''
+        working-directory: dashboard
+        run: |
+          python3 notify.py --analysis-failed \
+            --run-url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+
+      - name: Say so in Slack if the run failed
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        working-directory: dashboard
+        run: |
+          python3 notify.py --failed \
+            --run-url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+
+      # Catches the quieter failure: the job succeeds but collection has stopped
+      # producing anything (a dead feed, a blocked runner, a scheduler that stopped
+      # firing). Sends nothing while data is fresh, so it adds no noise.
+      - name: Say so in Slack if collection has gone stale
+        if: always() && env.SLACK_WEBHOOK_URL != ''
+        working-directory: dashboard
+        continue-on-error: true
+        run: python3 notify.py --health
+
+      - name: Summary
+        working-directory: dashboard
+        if: always()
+        run: |
+          echo "### Market monitor $(date -u +%Y-%m-%d)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -n 25 digest.md >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
